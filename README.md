@@ -69,3 +69,6 @@ Feedback files for a 2D variable with random values were generated for a small s
 
 * The user can play with changing some input parameters of the test. In each python script there is a section of changeable parameters where the user can change the number of processors, the bins of separation distance, plot locations, etc.
 
+## License
+
+[BSD-3 License](LICENSE)

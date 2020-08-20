@@ -1,3 +1,8 @@
+# (C) Crown Copyright, Met Office. All rights reserved.
+#
+# This file is part of ocean_error_covs and is released under the BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
+########################################################################################
 # Running a simple test case with a 2D random variable to output HL error covariances
 import os
 import master

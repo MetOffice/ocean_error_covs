@@ -1,8 +1,8 @@
-# Author: Davi Carneiro (davi.carneiro@metoffice.gov.uk)
-
-# Previous versions of the code:
-# James While (james.while@metoffice.gov.uk)
-################## Python packages ###########################
+# (C) Crown Copyright, Met Office. All rights reserved.
+#
+# This file is part of ocean_error_covs and is released under the BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
+################### Python packages ###########################
 import os
 # Set os.environment to have NUM_THREADS="1" to avoid numpy using 
 # by default all processors and competing with parallel processes.

@@ -1,5 +1,10 @@
 #!/bin/bash
 #################################################
+# (C) Crown Copyright, Met Office. All rights reserved.
+#
+# This file is part of ocean_error_covs and is released under the BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
+#################################################
 # Enter with scratch folder location to run a simple test
 scratch='/net/home/h01/dcarneir/scratch_HL_error_covs'
 #################################################
