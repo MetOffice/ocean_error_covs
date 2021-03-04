@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/288694395.svg)](https://zenodo.org/badge/latestdoi/288694395)
 # Python Error Covariance Estimation
 
 This is a quick User Guide for the **Python3** code which calculates error covariances using [Hollingsworth and Lonnberg](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1600-0870.1986.tb00460.x)'s methodology (see also the same methodology being applied for sea surface temperatures in [Robert-Jones et al. 2016](https://www.sciencedirect.com/science/article/pii/S0034425715302273)). The code is split into two parts:
