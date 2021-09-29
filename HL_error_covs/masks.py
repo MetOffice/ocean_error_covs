@@ -79,23 +79,26 @@ class applyMask():
           return lmask
 
 
-      def mask_output_cov_data(self, grid_mean, grid_var, 
+      def mask_output_cov_data(self, grid_mean, grid_var, grid_mean_obstd,
             num_obs_in_grid, num_pairs_in_cov, cov_xy, corr_xy):
           """ Mask data prior to output
 
           ***** PARAMETERS ******
           1. grid mean: Grid mean binned error 
           2. grid var: Grid variance
-          3. num_obs_in_grid: Number of obs within squared grid
-          4. num_pairs_in_cov: Number of covariance pairs for each bin at each grid
-          5. cov_xy: Covariance for each bin of separation distance and at each grid
-          6. corr_xy: Correlation for each bin of separation distance and at each grid 
+          3. grid_mean_obstd: Grid mean obs measurement error
+          4. num_obs_in_grid: Number of obs within squared grid
+          5. num_pairs_in_cov: Number of covariance pairs for each bin at each grid
+          6. cov_xy: Covariance for each bin of separation distance and at each grid
+          7. corr_xy: Correlation for each bin of separation distance and at each grid
           """
           # account for precision errors by forcing a minimum on variance
           grid_var[grid_var < 0.] = 0.
 
           grid_mean.mask = np.logical_or(np.ma.abs(grid_mean.mask) > self.undef, np.isnan(grid_mean))
           grid_mean.mask = np.logical_or(grid_mean.mask, num_obs_in_grid == 0)
+          grid_mean_obstd.mask = np.logical_or(np.ma.abs(grid_mean.mask) > self.undef, np.isnan(grid_mean))
+          grid_mean_obstd.mask = np.logical_or(grid_mean.mask, num_obs_in_grid == 0)
           grid_var.mask = np.logical_or(np.ma.abs(grid_var) > self.undef, np.isnan(grid_var))
           grid_var.mask = np.logical_or(grid_var.mask, num_obs_in_grid == 0)
           cov_xy.mask = np.logical_or(np.ma.abs(cov_xy) > self.undef, np.isnan(cov_xy))

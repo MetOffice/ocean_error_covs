@@ -48,11 +48,13 @@ class GridSumStats():
     def __init__(self, dims):
         self.num_obs_in_grid = np.ma.zeros(dims, dtype=np.int32)
         self.grid_sum = np.ma.zeros(dims)
+        self.grid_sum_obs_std = np.ma.zeros(dims)
         self.grid_sum_sq = np.ma.zeros(dims)
     
     def __add__(self, upd):
         update = GridSumStats(self.grid_sum.shape)
         update.num_obs_in_grid = self.num_obs_in_grid + upd.num_obs_in_grid
+        update.grid_sum_obs_std = self.grid_sum_obs_std + upd.grid_sum_obs_std
         update.grid_sum = self.grid_sum + upd.grid_sum
         update.grid_sum_sq = self.grid_sum_sq + upd.grid_sum_sq
         return update
@@ -61,6 +63,7 @@ class GridSumStats():
 class FdbkVarArrays():
     def __init__(self):
         self.obs_vals = ()
+        self.obs_std = ()
         self.mod_vals = ()
         self.obs_qc = ()
         self.lons = ()
@@ -69,6 +72,7 @@ class FdbkVarArrays():
     def __getitem__(self, i):
         update = FdbkVarArrays()
         update.obs_vals = self.obs_vals[i]
+        update.obs_std = self.obs_std[i]
         update.mod_vals = self.mod_vals[i]
         update.obs_qc = self.obs_qc[i]
         update.lons = self.lons[i]

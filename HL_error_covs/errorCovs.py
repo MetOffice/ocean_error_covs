@@ -57,10 +57,10 @@ class HLerrorCovs():
               else:
                   print("Processing file: {} | Depths: Surface variable".format(infile))
       
-              # Read fdbk variables 
+              # Read fdbk variables
               fdbk_var_array, depths = IO.ncread_fdbk_vars(infile, 
-                          args['obs_type'], args['source_types'])
-       
+                          args['obs_type'], args['source_types'], args['qc_val'])
+
               # For profiles pick a single observation at each depth range/latitude/longitude
               # This is done to avoid profiles being correlated with themselves
               if depth_range:
@@ -276,6 +276,8 @@ class HLerrorCovs():
           if(num_obs>0): 
             errs_req = fdbk_var_array.obs_vals[lmask] - fdbk_var_array.mod_vals[lmask]
             grid_stats.num_obs_in_grid[ilat,ilon] = grid_stats.num_obs_in_grid[ilat,ilon] + num_obs
+            grid_stats.grid_sum_obs_std[ilat,ilon] = grid_stats.grid_sum_obs_std[ilat,ilon] + \
+                                                     np.sum(fdbk_var_array.obs_std[lmask])
             grid_stats.grid_sum[ilat,ilon] = grid_stats.grid_sum[ilat,ilon] + np.sum(errs_req)
             grid_stats.grid_sum_sq[ilat,ilon] = grid_stats.grid_sum_sq[ilat,ilon] + np.sum(errs_req*errs_req)
           return grid_stats
@@ -327,4 +329,7 @@ class HLerrorCovs():
           numpairscov = sum_stats.num_pairs_in_cov
           numobsingrid = grid_stats.num_obs_in_grid
  
-          return cov_xy, corr_xy, grid_mean, grid_var, numobsingrid, numpairscov
+          # Grid mean obs measurement error
+          grid_mean_obstd = grid_stats.grid_sum_obs_std/grid_stats.num_obs_in_grid
+
+          return cov_xy, corr_xy, grid_mean, grid_var, numobsingrid, numpairscov, grid_mean_obstd
