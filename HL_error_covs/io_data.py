@@ -19,7 +19,7 @@ class IO():
         self.fill_value_numobs = -99999
 
 
-    def ncread_fdbk_vars(self, infile, var_type, source_types):
+    def ncread_fdbk_vars(self, infile, var_type, source_types, qc_val):
         """ Read netcdf of feedback variables and return
             object containing variables
         
@@ -27,6 +27,7 @@ class IO():
         1. infile: netcdf file to be read
         2. var_type: type of observation to be considered
         3. source_types: id of each sensor to be considered
+        4. qc_val: qc values to filter observations
 
         ******* RETURNS *******
         1. fdbk_var_array: object containing arrays
@@ -46,12 +47,20 @@ class IO():
            print("[WARNING] OBSERVATION IDs NOT FOUND IN {}".format(infile))
            return fdbk_var_array, None
         try:
-            fdbk_var_array.obs_vals = fdbkdata.variables[var_type+"_OBS"][msk,:]
+            fdbk_var_array.obs_qc = fdbkdata.variables[var_type + "_QC"][:]
         except:
             raise ValueError("[ERROR] " + var_type + "NOT FOUND IN FEEDBACK FILE " + infile)
+
+        # Filtering observations based on QC flags
+        if qc_val:
+           for qc in qc_val:
+               msk[fdbk_var_array.obs_qc == qc] = False
+        fdbk_var_array.obs_qc = fdbk_var_array.obs_qc[msk]
+
+        fdbk_var_array.obs_vals = fdbkdata.variables[var_type + "_OBS"][msk,:]
+        fdbk_var_array.obs_std = fdbkdata.variables[var_type + "_STD"][msk,:]
         fdbk_var_array.lats = fdbkdata.variables["LATITUDE"][msk]
         fdbk_var_array.lons = fdbkdata.variables["LONGITUDE"][msk]
-        fdbk_var_array.obs_qc = fdbkdata.variables[var_type + "_QC"][msk]
         fdbk_var_array.mod_vals = fdbkdata.variables[var_type + "_Hx"][msk,:]
         depths = fdbkdata.variables["DEPTH"][msk,:]
         fdbkdata.close()
@@ -121,6 +130,7 @@ class IO():
         grid_stats.grid_sum = accumstat.variables["GridSum"][dep_lev,:,:]
         grid_stats.grid_sum_sq = accumstat.variables["GridSumSq"][dep_lev,:,:]
         grid_stats.num_obs_in_grid = accumstat.variables["GridNumObs"][dep_lev,:,:]
+        grid_stats.grid_sum_obs_std = accumstat.variables["GridSumObsStd"][dep_lev,:,:]
         accumstat.close()
         return cov_stats, grid_stats
 
@@ -170,6 +180,7 @@ class IO():
         outfile.createVariable("NumObsCov", 'i', dimensions=("depth", "latitude", "longitude", "bins"))
         outfile.createVariable("GridSum", 'f', dimensions=("depth", "latitude", "longitude"))
         outfile.createVariable("GridSumSq", 'f', dimensions=("depth", "latitude", "longitude"))
+        outfile.createVariable("GridSumObsStd", 'f', dimensions=("depth", "latitude", "longitude"))
         outfile.createVariable("GridNumObs", 'i', dimensions=("depth", "latitude", "longitude"))
 
 
@@ -186,6 +197,8 @@ class IO():
         outfile.createVariable("GridNumObs", 'i', dimensions=("depth", "latitude", "longitude"),
                                fill_value=self.fill_value_numobs)
         outfile.createVariable("GridMeanBinnedError", 'f', dimensions=("depth", "latitude", "longitude"),
+                               fill_value=self.fill_value)
+        outfile.createVariable("GridMeanObsStd", 'f', dimensions=("depth", "latitude", "longitude"),
                                fill_value=self.fill_value)
         outfile.createVariable("Covariance", 'f', dimensions=("depth", "latitude", "longitude", "bins"),
                                fill_value=self.fill_value)
@@ -229,10 +242,11 @@ class IO():
         outfile.variables["GridSum"][dep_lev,:,:] = grid_stats.grid_sum
         outfile.variables["GridSumSq"][dep_lev,:,:] = grid_stats.grid_sum_sq
         outfile.variables["GridNumObs"][dep_lev,:,:] = grid_stats.num_obs_in_grid
+        outfile.variables["GridSumObsStd"][dep_lev,:,:] = grid_stats.grid_sum_obs_std
 
 
-    def ncwrite_covariance(self, outfile, dep_lev, grid_mean, grid_var, 
-                          num_obs_in_grid, num_pairs_in_cov, cov_xy, corr_xy):
+    def ncwrite_covariance(self, outfile, dep_lev, grid_mean, grid_var, grid_mean_obstd,
+                           num_obs_in_grid, num_pairs_in_cov, cov_xy, corr_xy):
         """ Write covariance data to output netcdf file 
 
         ****** PARAMETERS ******
@@ -240,13 +254,15 @@ class IO():
         2. dep_lev: the depth level of the data
         3. grid_mean: grid mean binned error 
         4. grid_var: grid variance 
-        5. num_obs_in_grid: Number of obs within squared grid
-        6. num_pairs_in_cov: Number of covariance pairs for each bin at each grid
-        7. cov_xy: Covariance for each bin of separation distance and at each grid
-        8. corr_xy: Correlation for each bin of separation distance and at each grid 
+        5. grid_mean_obstd: grid mean binned obs measurement error
+        6. num_obs_in_grid: Number of obs within squared grid
+        7. num_pairs_in_cov: Number of covariance pairs for each bin at each grid
+        8. cov_xy: Covariance for each bin of separation distance and at each grid
+        9. corr_xy: Correlation for each bin of separation distance and at each grid
         """
         outfile.variables["GridMeanBinnedError"][dep_lev,:,:] = grid_mean
         outfile.variables["GridVariance"][dep_lev,:,:] = grid_var
+        outfile.variables["GridMeanObsStd"][dep_lev,:,:] = grid_mean_obstd
         outfile.variables["GridNumObs"][dep_lev,:,:] = num_obs_in_grid
         outfile.variables["NumObsCov"][dep_lev,:,:,:] = num_pairs_in_cov
         outfile.variables["Covariance"][dep_lev,:,:,:] = cov_xy

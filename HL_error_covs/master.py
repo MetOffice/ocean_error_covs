@@ -29,7 +29,7 @@ applyMask = applyMask()
 def HL_cov_accum_stats(list_of_fdbackfiles, obs_type="SST",
                        outfilename="accum_stats.nc", grid_def=[[-90,90,2.],[-180,180,2.]],
                        bins=np.arange(50,1000.,50.), depth_boundaries=[],
-                       source_types=[], nproc=1):
+                       source_types=[], qc_val=[], nproc=1):
 
     """ Top-level routine that calculates the H+L accumulated statistics from a 
         list of feedback files using multiprocessing and produces an output file
@@ -47,7 +47,9 @@ def HL_cov_accum_stats(list_of_fdbackfiles, obs_type="SST",
              profile observations)
     7. source_types: observation id types to process 
                      (default: [], which means process all)
-    8. nproc: number of processors (default is 1)
+    8. qc_val: QC values to filter obs
+                     (default: [], which means do not filter any obs)
+    9. nproc: number of processors (default is 1)
     """ 
     # Check list of feedack files
     list_of_fdbackfiles = Utils.check_files(list_of_fdbackfiles)
@@ -106,7 +108,8 @@ def HL_cov_accum_stats(list_of_fdbackfiles, obs_type="SST",
                           "grid_lat": grid_lat,
                           "depth_range": depth_range,
                           "obs_type": obs_type,
-                          "source_types": source_types}]
+                          "source_types": source_types,
+                          "qc_val": qc_val}]
 
         # send tasks off to workers
         work_output = workers.map(HLerrorCovs.mp_calc_cov_accum_stats, arg_list)
@@ -168,15 +171,15 @@ def HL_error_covs(list_of_files, outfilename="corrs.nc"):
 
         # Calculate correlation and covariancee
         cov_xy, corr_xy, grid_mean, grid_var, numobsgrid, \
-        numpairscov = HLerrorCovs.calc_err_covs(final_cov_stats, 
-                             final_grid_stats, nbin, nlat, nlon)
+        numpairscov, grid_mean_obstd = HLerrorCovs.calc_err_covs(final_cov_stats,
+                                              final_grid_stats, nbin, nlat, nlon)
 
         # Mask output data
-        applyMask.mask_output_cov_data(grid_mean, grid_var, numobsgrid,
-                                       numpairscov, cov_xy, corr_xy)
+        applyMask.mask_output_cov_data(grid_mean, grid_var, grid_mean_obstd,
+                                       numobsgrid, numpairscov, cov_xy, corr_xy)
 
         # Write error covariances to output file
-        IO.ncwrite_covariance(outfile, dep_lev, grid_mean, grid_var,
-                           numobsgrid, numpairscov, cov_xy, corr_xy)
+        IO.ncwrite_covariance(outfile, dep_lev, grid_mean, grid_var, grid_mean_obstd,
+                              numobsgrid, numpairscov, cov_xy, corr_xy)
 
     outfile.close()
