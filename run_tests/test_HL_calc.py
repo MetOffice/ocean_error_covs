@@ -5,7 +5,7 @@
 ########################################################################################
 # Running a simple test case with a 2D random variable to output HL error covariances
 import os
-import master
+import HL_error_covs.master as master
 ########################################################################################
 # Changeable parameters
 nproc = 3                                          # number of processors to run the test
@@ -19,8 +19,8 @@ output_files = []
 for i in range(1, 90, inc):
     print("MESSAGE: RUNNING SCRIPT TO GENERATE HL ACCUMULATED STATS FILES - STEP {}".format(count))
     list_of_files = ["test_files/HL_random_sample_" + str(n) + ".nc" for n in range(i, i+inc)]
-    master.HL_cov_accum_stats(list_of_files, obs_type="VAR", source_types=[34],
-                              grid_def=[[-8.0,-2.0,1.0],[-24.0,-18.0,1.0]], bins=bins, 
+    master.HL_cov_accum_stats(list_of_files, obs_type="VAR", source_types=[34], bins=bins,
+                              grid_def=[[-8.0, -2.0, 1.0],[-24.0,-18.0,1.0]],
                               depth_boundaries=[], outfilename=filename, nproc=nproc)
     os.system("mv {} HL_accumstats_{}.nc".format(filename, count))
     output_files.append("HL_accumstats_{}.nc".format(count))

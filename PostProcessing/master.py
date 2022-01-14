@@ -13,9 +13,9 @@ os.environ["OMP_NUM_THREADS"] = "1"
 import numpy as np
 from multiprocessing import Pool
 ################## Code modules ##############################
-from io_data import IO
-from posproc import Posproc
-from plot import Plots
+from PostProcessing.io_data import IO
+from PostProcessing.posproc import Posproc
+from PostProcessing.plot import Plots
 
 # Initialising the classes
 IO = IO()
@@ -99,7 +99,7 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
            Plots.plot_data_vs_fitting(outfig, plot, x_val, cors, var, obs_err, lats, lons,
                                        depth[lev], params, func_name, num_funcs, lenscale)
                                       
-        print("MESSAGE: Writing data to netcdf file: " + str(depth[lev]) + " m")
+        print(f"MESSAGE: Writing data to netcdf file: {outfile}")
         if lev == 0:
            for param in range(0, len(params)):
                # Define netcdf variables from fitting function results

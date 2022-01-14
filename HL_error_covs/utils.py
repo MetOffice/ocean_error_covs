@@ -31,7 +31,6 @@ class Utils():
               num_proc += 1
           return file_lists
 
-
       def check_files(self, list_files):
           """ Function to check if files exist
 

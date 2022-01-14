@@ -5,8 +5,8 @@
 #######################################################################
 import numpy as np
 from netCDF4 import Dataset
-from masks import applyMask
-import arrays
+from HL_error_covs.masks import applyMask
+import HL_error_covs.arrays as arrays
 
 # Initialising the classes
 applyMask = applyMask()
@@ -58,14 +58,21 @@ class IO():
         fdbk_var_array.obs_qc = fdbk_var_array.obs_qc[msk]
 
         fdbk_var_array.obs_vals = fdbkdata.variables[var_type + "_OBS"][msk,:]
-        fdbk_var_array.obs_std = fdbkdata.variables[var_type + "_STD"][msk,:]
+        try:
+            fdbk_var_array.obs_std = (
+                fdbkdata.variables[var_type + "_STD"][msk,:])
+        except KeyError:
+            print("No STD in file, setting fdbk_var_array.obs_std to zero")
+            fdbk_var_array.obs_std = np.zeros(fdbk_var_array.obs_vals.shape)
+
         fdbk_var_array.lats = fdbkdata.variables["LATITUDE"][msk]
         fdbk_var_array.lons = fdbkdata.variables["LONGITUDE"][msk]
+        # Handle longitude ambiguity
+        fdbk_var_array.lons[fdbk_var_array.lons>180] -= 360
         fdbk_var_array.mod_vals = fdbkdata.variables[var_type + "_Hx"][msk,:]
         depths = fdbkdata.variables["DEPTH"][msk,:]
         fdbkdata.close()
         return fdbk_var_array, depths
-
 
     def ncread_dimension_variables(self, infile):
         """ Read dimensions of the netcdf file
@@ -222,7 +229,6 @@ class IO():
         outfile.variables["longitude"][:] = grid_lon
         outfile.variables["bins"][:] = bins
         outfile.variables["depth"][:] = depths
-
 
     def ncwrite_accum_stats(self, outfile, dep_lev, sum_stats, grid_stats):
         """ Write accumulated statistics to netcdf file

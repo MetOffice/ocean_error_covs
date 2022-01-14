@@ -6,7 +6,7 @@
 import numpy as np
 import numpy.ma as ma
 import scipy.optimize as opt
-import functions
+import PostProcessing.functions as functions
 
 class Posproc():
       """ Class of post-processing functions """
