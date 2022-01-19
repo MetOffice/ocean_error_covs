@@ -45,3 +45,4 @@ New contributors are encouraged to add their details to the code contributors se
 
 * Davi Mignac Carneiro (Met Office, UK) - davi.carneiro@metoffice.gov.uk
 * Matthew Martin (Met Office, UK) - matthew.martin@metoffice.gov.uk 
+* James While (Met Office, UK) - james.while@metoffice.gov.uk
