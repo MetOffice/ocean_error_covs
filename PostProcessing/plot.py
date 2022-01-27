@@ -5,12 +5,15 @@
 #######################################################################
 import os
 import numpy as np
-import functions
+import PostProcessing.functions as functions
 try:
-  import matplotlib.pyplot as plt
-  plotting = True
+    if os.environ["HOSTNAME"][0:8] == "expspice":
+        import matplotlib
+        matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    plotting = True
 except:
-  plotting = False
+    plotting = False
 
 class Plots():
       """ Class of plotting functions """

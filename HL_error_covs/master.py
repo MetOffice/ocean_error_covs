@@ -14,11 +14,11 @@ os.environ["OMP_NUM_THREADS"] = "1"
 import numpy as np
 from multiprocessing import Pool
 ################## Code modules ##############################
-import arrays
-from io_data import IO
-from utils import Utils
-from errorCovs import HLerrorCovs
-from masks import applyMask
+import HL_error_covs.arrays as arrays
+from HL_error_covs.io_data import IO
+from HL_error_covs.utils import Utils
+from HL_error_covs.errorCovs import HLerrorCovs
+from HL_error_covs.masks import applyMask
 
 # Initialising the classes
 IO = IO()

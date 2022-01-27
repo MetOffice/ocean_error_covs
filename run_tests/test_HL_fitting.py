@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 ###################################################################################
 # Running a simple test case to fit 2D error covariances to MultiGaussian functions
-import master
+import PostProcessing.master as master
 ###################################################################################
 # Changeable parameters
 nproc = 3                              # Number of processors to run the test

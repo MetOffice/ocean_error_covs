@@ -4,11 +4,11 @@
 # See LICENSE in the root of the repository for full licensing details.
 #######################################################################
 import numpy as np
-import arrays
-from profiles import ObsProfiles
-from io_data import IO
-from utils import Utils
-from masks import applyMask
+import HL_error_covs.arrays as arrays
+from HL_error_covs.profiles import ObsProfiles
+from HL_error_covs.io_data import IO
+from HL_error_covs.utils import Utils
+from HL_error_covs.masks import applyMask
 
 # Initialising the classes
 ObsProfiles = ObsProfiles()
