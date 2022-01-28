@@ -143,11 +143,15 @@ def HL_error_covs(list_of_files, outfilename="corrs.nc"):
     if list_of_files is None:
        raise ValueError("[ERROR] NETCDF FILES NOT FOUND")
 
-    grid_lat, grid_lon, depths, bins = IO.ncread_dimension_variables(list_of_files[0])
-    nbin = len(bins)
-    ndep = len(depths)
+    ncdata = IO.ncread_variables(list_of_files[0], ['latitude', 'longitude', 'bins', 'depth'])
+    grid_lat = ncdata[0]
+    grid_lon = ncdata[1]
+    bins = ncdata[2]
+    depths = ncdata[3]
     nlat = len(grid_lat)
     nlon = len(grid_lon)
+    nbin = len(bins)
+    ndep = len(depths)
 
     # Create netcdf object and add dimensions
     outfile = IO.nc_define_dimensions(outfilename, nlat, nlon, nbin, ndep)

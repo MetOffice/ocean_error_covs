@@ -74,17 +74,15 @@ class IO():
         fdbkdata.close()
         return fdbk_var_array, depths
 
-    def ncread_dimension_variables(self, infile):
-        """ Read dimensions of the netcdf file
+    def ncread_variables(self, infile, varnc):
+        """ Read variables of a netcdf file
 
         ****** PARAMETERS *****
         1. infile: file to read
+        2. varnc: list with varnames to be read
         
         ******* RETURNS *******
-        1. latitude: latitudes of the grid
-        2. longitude: longitudes of the grid
-        3. depths: depth levels
-        4. bins: bins of separation distance
+        1. data: data group with all requested variables
         """
         # Open netcdf file
         try:
@@ -92,12 +90,12 @@ class IO():
         except:
             raise ValueError("[ERROR] CANNOT OPEN NETCDF FILE")
 
-        grid_lat = nc.variables['latitude'][:]
-        grid_lon = nc.variables['longitude'][:]
-        depths = nc.variables['depth'][:]
-        bins = nc.variables['bins'][:]
+        data = []
+        for var in varnc:
+            data.append(nc.variables[var][:])
         nc.close()
-        return grid_lat, grid_lon, depths, bins
+
+        return data
 
 
     def ncread_accum_stats(self, infile, nlat, nlon, nbin, dep_lev):
