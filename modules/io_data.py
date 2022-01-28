@@ -5,8 +5,8 @@
 #######################################################################
 import numpy as np
 from netCDF4 import Dataset
-from HL_error_covs.masks import applyMask
-import HL_error_covs.arrays as arrays
+from modules.masks import applyMask
+import modules.arrays as arrays
 
 # Initialising the classes
 applyMask = applyMask()

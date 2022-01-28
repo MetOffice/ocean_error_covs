@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 #######################################################################
 import numpy as np
-import HL_error_covs.arrays as arrays
+import modules.arrays as arrays
 
 class ObsProfiles():
       """Class of functions to deal with profile observations"""
