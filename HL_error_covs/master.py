@@ -230,8 +230,18 @@ def HL_error_covs(list_of_files, outfilename="corrs.nc"):
                                               final_grid_stats, nbin, nlat, nlon)
 
         # Mask output data
-        applyMask.mask_output_cov_data(grid_mean, grid_var, grid_mean_obstd,
-                                       numobsgrid, numpairscov, cov_xy, corr_xy)
+        grid_mean.mask = applyMask.create_mask(grid_mean.mask, [grid_mean, grid_mean, \
+                                     numobsgrid], [1e10, -1e10, 0], ['>', '<', '=='],
+                                     var_look_nan=grid_mean)
+        grid_mean_obstd.mask = applyMask.create_mask(grid_mean_obstd.mask, [grid_mean_obstd, \
+                                     grid_mean_obstd, numobsgrid], [1e10, -1e10, 0],
+                                     ['>', '<', '=='], var_look_nan=grid_mean_obstd)
+        grid_var.mask = applyMask.create_mask(grid_var.mask, [grid_var, grid_var, numobsgrid],
+                                     [1e10, -1e10, 0], ['>', '<', '=='], var_look_nan=grid_var)
+        cov_xy.mask = applyMask.create_mask(cov_xy.mask, [cov_xy, cov_xy, numpairscov],
+                                     [1e10, -1e10, 0], ['>', '<', '=='], var_look_nan=cov_xy)
+        corr_xy.mask = applyMask.create_mask(corr_xy.mask, [corr_xy, corr_xy, numpairscov],
+                                     [1e10, -1e10, 0], ['>', '<', '=='], var_look_nan=corr_xy)
 
         # Write 4D variables to output file
         IO.ncwrite_variables(outfile, ['NumObsCov', 'Covariance', 'Correlation'], [], [], \

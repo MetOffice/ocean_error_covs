@@ -67,7 +67,7 @@ class HLerrorCovs():
                  fdbk_var_array = ObsProfiles.random_subsample_profiles(depths, 
                                                    depth_range, fdbk_var_array)
                                           
-              if len(fdbk_var_array.lats)>0:
+              if len(fdbk_var_array.lats) > 0:
                  if (np.min(args["grid_lon"]) >= 0.):
                     fdbk_var_array.lons[np.where(fdbk_var_array.lons < 0.)] = fdbk_var_array.lons + 360.
                            
@@ -104,8 +104,10 @@ class HLerrorCovs():
           nlat=len(grid_lat)
           nlon=len(grid_lon)
           nbin=len(bins)
-          
-          lmask = applyMask.mask_bad_fdbk_data(fdbk_var_array)
+
+          # Remove any bad data from feedback files
+          lmask = np.logical_and(fdbk_var_array.obs_vals[:] != self.fbrmdi,
+                                 fdbk_var_array.mod_vals[:] != self.fbrmdi)
           num_obs = np.count_nonzero(lmask)
           dlat = np.abs(grid_lat[0] - grid_lat[1])
           dlon = np.abs(grid_lon[0] - grid_lon[1])
@@ -123,8 +125,11 @@ class HLerrorCovs():
                       lmask1 = np.logical_and(lmask, obs_dist <= bins[nbin-1] + grid_dist[0])
       
                       # Which observations are within the grid square being considered
-                      lmask2 = applyMask.mask_obs_in_grid(lmask, ilon, ilat, grid_lon, 
-                                                          grid_lat, fdbk_var_array)
+                      lmask2 = applyMask.create_mask(lmask, [fdbk_var_array.lons, fdbk_var_array.lons, \
+                                     fdbk_var_array.lats, fdbk_var_array.lats], [grid_lon[ilon]-dlon/2., \
+                                     grid_lon[ilon]+dlon/2., grid_lat[ilat]-dlat/2., grid_lat[ilat]+dlat/2.],
+                                     ['>', '<=', '>', '<='], logical='and')
+
                       num_obs_in_grid = np.count_nonzero(lmask2)
 
                       # calculate grid stats and accumulate them
@@ -331,5 +336,8 @@ class HLerrorCovs():
  
           # Grid mean obs measurement error
           grid_mean_obstd = grid_stats.grid_sum_obs_std/grid_stats.num_obs_in_grid
+
+          # account for precision errors by forcing a minimum on variance
+          grid_var[grid_var < 0.] = 0.
 
           return cov_xy, corr_xy, grid_mean, grid_var, numobsingrid, numpairscov, grid_mean_obstd
