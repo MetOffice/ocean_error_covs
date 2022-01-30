@@ -78,17 +78,27 @@ def HL_cov_accum_stats(list_of_fdbackfiles, obs_type="SST",
     list_per_proc = Utils.divide_files_per_proc(nproc, list_of_fdbackfiles)
 
     # Create netcdf object and add dimensions
-    outfile = IO.nc_define_dimensions(outfilename, nlat, nlon, nbin, ndep)
+    outfile = IO.nc_define_dimensions(outfilename,
+                                      ['latitude', 'longitude', 'bins', 'depth'],
+                                      [nlat, nlon, nbin, ndep])
     
-    # Add netcdf variables (accumulated stats)
-    IO.nc_define_accum_stats_variables(outfile)
+    # Write dimension variables
+    IO.ncwrite_variables(outfile, ['latitude'], ['f'], ('latitude'), [grid_lat])
+    IO.ncwrite_variables(outfile, ['longitude'], ['f'], ('longitude'), [grid_lon])
+    IO.ncwrite_variables(outfile, ['depth'], ['f'], ('depth'), [depths])
+    IO.ncwrite_variables(outfile, ['bins'], ['f'], ('bins'), [bins])
 
-    # Write dimension variables (depth, lat, lon and bins)
-    IO.ncwrite_dimension_variables(outfile, grid_lat, grid_lon, depths, bins)
+    # Create 4D netcdf variables (accumulated stats)
+    IO.ncwrite_variables(outfile, ['SumX', 'SumY', 'SumXSq', 'SumYSq', 'SumXY', 'NumObsCov'],
+                         ['f', 'f', 'f', 'f', 'f', 'i'], ('depth', 'latitude', 'longitude', 'bins'))
+
+    # Create 3D netcdf variables (accumulated stats)
+    IO.ncwrite_variables(outfile, ['GridSum', 'GridSumSq', 'GridSumObsStd', 'GridNumObs'],
+                         ['f', 'f', 'f', 'i'], ('depth', 'latitude', 'longitude'))
 
     print("MESSAGE: {} nprocs to process {} feedback files".format(nproc,
                                                len(list_of_fdbackfiles)))
-    arg_list=[]
+
     for dep_lev in range(0, ndep):
         print("MESSAGE: Calculating accumulated stats for level: ", dep_lev)
         
@@ -122,8 +132,17 @@ def HL_cov_accum_stats(list_of_fdbackfiles, obs_type="SST",
             sum_stats += p[0]
             grid_stats += p[1]
   
-        # Write accumulated stats to output file
-        IO.ncwrite_accum_stats(outfile, dep_lev, sum_stats, grid_stats)
+        # Write 4D accumulated stats to output file
+        IO.ncwrite_variables(outfile, ['SumX', 'SumY', 'SumXSq', 'SumYSq', 'SumXY', 'NumObsCov'], [], [], \
+                             vardata=[sum_stats.sum_x, sum_stats.sum_y, sum_stats.sum_x_sq, \
+                              sum_stats.sum_y_sq, sum_stats.sum_xy, sum_stats.num_pairs_in_cov], \
+                             create_vars=False, dep_lev=dep_lev)
+
+        # Write 3D accumulated stats to output file
+        IO.ncwrite_variables(outfile, ['GridSum', 'GridSumSq', 'GridNumObs', 'GridSumObsStd'], [], [], \
+                             vardata=[grid_stats.grid_sum, grid_stats.grid_sum_sq, \
+                             grid_stats.num_obs_in_grid, grid_stats.grid_sum_obs_std], \
+                             create_vars=False, dep_lev=dep_lev)
 
     outfile.close()
 
@@ -154,14 +173,24 @@ def HL_error_covs(list_of_files, outfilename="corrs.nc"):
     ndep = len(depths)
 
     # Create netcdf object and add dimensions
-    outfile = IO.nc_define_dimensions(outfilename, nlat, nlon, nbin, ndep)
+    outfile = IO.nc_define_dimensions(outfilename,
+                                      ['latitude', 'longitude', 'bins', 'depth'],
+                                      [nlat, nlon, nbin, ndep])
     
-    # Add netcdf variables (final ErrorCovs stats)
-    IO.nc_define_cov_variables(outfile)
+    # Write dimension variables
+    IO.ncwrite_variables(outfile, ['latitude'], ['f'], ('latitude'), [grid_lat])
+    IO.ncwrite_variables(outfile, ['longitude'], ['f'], ('longitude'), [grid_lon])
+    IO.ncwrite_variables(outfile, ['depth'], ['f'], ('depth'), [depths])
+    IO.ncwrite_variables(outfile, ['bins'], ['f'], ('bins'), [bins])
 
-    # Write dimension variables (depth, lat, lon and bins)
-    IO.ncwrite_dimension_variables(outfile, grid_lat, grid_lon, 
-                                   depths, bins)
+    # Add netcdf 4D variables (final ErrorCovs stats)
+    IO.ncwrite_variables(outfile, ['NumObsCov', 'Covariance', 'Correlation'],
+                         ['i', 'f', 'f'], ('depth', 'latitude', 'longitude', 'bins'))
+
+    # Add netcdf 3D variables (final ErrorCovs stats)
+    IO.ncwrite_variables(outfile, ['GridVariance', 'GridNumObs', \
+                         'GridMeanBinnedError', 'GridMeanObsStd'], ['f', 'i', 'f', 'f'],
+                         ('depth', 'latitude', 'longitude'))
 
     for dep_lev in range(0, ndep):
         print("MESSAGE: Calculating error covariance for level: " + str(depths[dep_lev]) + " m")
@@ -169,11 +198,33 @@ def HL_error_covs(list_of_files, outfilename="corrs.nc"):
         final_grid_stats = arrays.GridSumStats((nlat, nlon))
         for f in list_of_files:
             print("MESSAGE: Reading file {}".format(f))
-            cov_stats, grid_stats = IO.ncread_accum_stats(f, nlat, nlon, nbin, dep_lev)
+
+            # Read cov_stats variables from netcdf
+            ncdata = IO.ncread_variables(f, ['SumX', 'SumY', 'SumXSq', 'SumYSq', 'SumXY', \
+                                         'NumObsCov'], dep_lev=dep_lev)
+
+            cov_stats = arrays.CovSumStats((nlat, nlon, nbin))
+            cov_stats.sum_x = ncdata[0]
+            cov_stats.sum_y = ncdata[1]
+            cov_stats.sum_x_sq = ncdata[2]
+            cov_stats.sum_y_sq = ncdata[3]
+            cov_stats.sum_xy = ncdata[4]
+            cov_stats.num_pairs_in_cov = ncdata[5]
+
+            # Read grid_stats variables from netcdf
+            ncdata = IO.ncread_variables(f, ['GridSum', 'GridSumSq', 'GridNumObs', \
+                                         'GridSumObsStd'], dep_lev=dep_lev)
+
+            grid_stats = arrays.GridSumStats((nlat, nlon))
+            grid_stats.grid_sum = ncdata[0]
+            grid_stats.grid_sum_sq = ncdata[1]
+            grid_stats.num_obs_in_grid = ncdata[2]
+            grid_stats.grid_sum_obs_std = ncdata[3]
+
             final_cov_stats += cov_stats
             final_grid_stats += grid_stats
 
-        # Calculate correlation and covariancee
+        # Calculate correlation and covariance
         cov_xy, corr_xy, grid_mean, grid_var, numobsgrid, \
         numpairscov, grid_mean_obstd = HLerrorCovs.calc_err_covs(final_cov_stats,
                                               final_grid_stats, nbin, nlat, nlon)
@@ -182,8 +233,14 @@ def HL_error_covs(list_of_files, outfilename="corrs.nc"):
         applyMask.mask_output_cov_data(grid_mean, grid_var, grid_mean_obstd,
                                        numobsgrid, numpairscov, cov_xy, corr_xy)
 
-        # Write error covariances to output file
-        IO.ncwrite_covariance(outfile, dep_lev, grid_mean, grid_var, grid_mean_obstd,
-                              numobsgrid, numpairscov, cov_xy, corr_xy)
+        # Write 4D variables to output file
+        IO.ncwrite_variables(outfile, ['NumObsCov', 'Covariance', 'Correlation'], [], [], \
+                             vardata=[numpairscov, cov_xy, corr_xy], create_vars=False,
+                             dep_lev=dep_lev)
+
+        # Write 3D variables to output file
+        IO.ncwrite_variables(outfile, ['GridVariance', 'GridNumObs', 'GridMeanBinnedError', \
+                             'GridMeanObsStd'], [], [], vardata=[grid_var, numobsgrid, \
+                              grid_mean, grid_mean_obstd], create_vars=False, dep_lev=dep_lev)
 
     outfile.close()
