@@ -125,7 +125,8 @@ class IO():
         return outfile
 
     def ncwrite_variables(self, outfile, varnames, vartypes, vardims,
-                          vardata=[], dep_lev=None, create_vars=True):
+                          vardata=[], dep_lev=None, create_vars=True,
+                          fill_value=None):
         """ Create and write netcdf variables
 
         ****** PARAMETERS *****
@@ -136,12 +137,17 @@ class IO():
         5. vardata: list containing all the arrays to be written
         6. dep_lev: slice of depth level to be written
         7. create_vars: True if step to create vars should be done
+        8. fill_value: fill value to be considered (otherwise None)
         """ 
 
         # create dimension and write variables
         for idx, var in enumerate(varnames):
             if create_vars:
-               outfile.createVariable(var, vartypes[idx], dimensions=vardims)
+               if fill_value is None:
+                  outfile.createVariable(var, vartypes[idx], dimensions=vardims)
+               else:
+                  outfile.createVariable(var, vartypes[idx], dimensions=vardims,
+                                         fill_value=fill_value[idx])
             if len(vardata) > 0:
                if dep_lev is None:
                   outfile.variables[var][:] = vardata[idx]

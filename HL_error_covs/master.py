@@ -185,12 +185,14 @@ def HL_error_covs(list_of_files, outfilename="corrs.nc"):
 
     # Add netcdf 4D variables (final ErrorCovs stats)
     IO.ncwrite_variables(outfile, ['NumObsCov', 'Covariance', 'Correlation'],
-                         ['i', 'f', 'f'], ('depth', 'latitude', 'longitude', 'bins'))
+                         ['i', 'f', 'f'], ('depth', 'latitude', 'longitude', 'bins'),
+                         fill_value=[-99999, 1e10, 1e10])
 
     # Add netcdf 3D variables (final ErrorCovs stats)
     IO.ncwrite_variables(outfile, ['GridVariance', 'GridNumObs', \
                          'GridMeanBinnedError', 'GridMeanObsStd'], ['f', 'i', 'f', 'f'],
-                         ('depth', 'latitude', 'longitude'))
+                         ('depth', 'latitude', 'longitude'),
+                         fill_value=[1e10, -99999, 1e10, 1e10])
 
     for dep_lev in range(0, ndep):
         print("MESSAGE: Calculating error covariance for level: " + str(depths[dep_lev]) + " m")
