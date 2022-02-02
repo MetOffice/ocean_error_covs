@@ -13,14 +13,16 @@ os.environ["OMP_NUM_THREADS"] = "1"
 import numpy as np
 from multiprocessing import Pool
 ################## Code modules ##############################
-from PostProcessing.io_data import IO
-from PostProcessing.posproc import Posproc
-from PostProcessing.plot import Plots
+from modules.io_data import IO
+from modules.plot import Plots
+from modules.masks import applyMask
+from modules.posproc import Posproc
 
 # Initialising the classes
 IO = IO()
 Posproc = Posproc()
 Plots = Plots()
+applyMask = applyMask()
 
 def HL_fitting_function(infile, outfilename, func_name="MultiGauss", 
                        num_funcs=2, lenscale=(400,40), plot=None, outfig='./figures', 
@@ -55,33 +57,51 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
        raise ValueError("[ERROR] INPUT FILE NOT FOUND")
   
     # Read dimension variables from netcdf file
-    lats, lons, depth, bins = IO.ncread_dimension_variables(infile)
+    ncdata = IO.ncread_variables(infile, ['latitude', 'longitude', 'bins', 'depth'])
+    lats = ncdata[0]
+    lons = ncdata[1]
+    bins = ncdata[2]
+    depth = ncdata[3]
 
     # Create netcdf object and add dimensions
-    outfile = IO.nc_define_dimensions(outfilename, len(lats), len(lons), len(depth))
+    outfile = IO.nc_define_dimensions(outfilename,
+                                      ['latitude', 'longitude' , 'depth'],
+                                      [len(lats), len(lons), len(depth)])
 
-    # Write dimension variables (depth, lat, lon and bins)
-    IO.ncwrite_dimension_variables(outfile, lats, lons, depth)
+    # Write dimension variables
+    IO.ncwrite_variables(outfile, ['latitude'], ['f'], ('latitude'), vardata=[lats])
+    IO.ncwrite_variables(outfile, ['longitude'], ['f'], ('longitude'), vardata=[lons])
+    IO.ncwrite_variables(outfile, ['depth'], ['f'], ('depth'), vardata=[depth])
 
     # Add attributes
     outfile.Function = "Function fitting done using the "+func_name+" function"
         
     # Add variables
-    IO.nc_define_vars(outfile, "Chi_sq", 'f', ("depth","latitude","longitude"))
-    IO.nc_define_vars(outfile, "obs_err", 'f', ("depth","latitude","longitude"))
+    IO.ncwrite_variables(outfile, ['Chi_sq', 'obs_err'],
+                         ['f', 'f'], ('depth', 'latitude', 'longitude'))
 
     # Calculate x positions based on the separation distances
     x_val = Posproc.calc_x_positions(bins)
 
     for lev in range(0, len(depth)):
-        print("MESSAGE: Fitting function " + func_name + " to ErrorCov data: " + str(depth[lev]) + " m")
+        print(f"MESSAGE: Fitting function {func_name} to ErrorCov data: {depth[lev]} m")
         
         # set up workers
         workers = Pool(nproc)
         
         # Reading error covariance variables
-        var, cors, numobsvar = IO.ncread_errorcovs(infile, lev)
-        
+        ncdata = IO.ncread_variables(infile, ['GridNumObs', 'GridVariance', \
+                                     'Correlation', 'Covariance'], dep_lev=lev)
+        numobsvar = ncdata[0]
+        var = ncdata[1]
+        cors = ncdata[2]
+        covs = ncdata[3]
+
+        # account for precision errors by forcing minimum and
+        # maximum correlation to [-1.0, 1.0]
+        cors[cors>1.] = 1.
+        cors[cors<-1.] = -1.
+
         # Creating list with arguments to run in parallel
         arg_lists = Posproc.create_arg_list(x_val, cors, var, numobsvar, min_num_obs, 
                                             func_name, num_funcs, lenscale, max_iter)
@@ -95,18 +115,36 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
 
         # Plot some results if requested
         if plot != None:
-           print("MESSAGE: Plotting results - data versus fitting: " + str(depth[lev]) + " m")
+           print(f"MESSAGE: Plotting results - data versus fitting: {depth[lev]} m")
            Plots.plot_data_vs_fitting(outfig, plot, x_val, cors, var, obs_err, lats, lons,
                                        depth[lev], params, func_name, num_funcs, lenscale)
-                                      
-        print(f"MESSAGE: Writing data to netcdf file: {outfile}")
-        if lev == 0:
-           for param in range(0, len(params)):
-               # Define netcdf variables from fitting function results
-               IO.nc_define_vars(outfile, arg_lists[0]["func"].param_names()[param],
-                                 'f', ("depth","latitude","longitude"))
-      
-        # Add variables to netcdf
-        IO.ncwrite_output(outfile, arg_lists[0]["func"], chi_grid, obs_err, params, lev) 
-    
+
+        print(f"MESSAGE: Writing data to netcdf file: {outfilename}")
+
+        for param in range(0, len(params)):
+            if lev == 0:
+                # Define netcdf variables from fitting function results
+                IO.ncwrite_variables(outfile, [arg_lists[0]["func"].param_names()[param]],
+                                     ['f'], ('depth', 'latitude', 'longitude'))
+
+            # Masking function fitting outputs
+            params[param].mask = applyMask.create_mask(params[param].mask, [chi_grid],
+                                                [-1e10], ['=='], var_look_nan=chi_grid)
+
+            # Adding function fitting parameter to netcdf
+            IO.ncwrite_variables(outfile, [arg_lists[0]["func"].param_names()[param]],
+                                 [], [], vardata=[params[param]], create_vars=False,
+                                 dep_lev=lev)
+
+        # Masking chi_err and obs_err
+        obs_err.mask = applyMask.create_mask(obs_err.mask, [chi_grid], [-1e10],
+                                             ['=='], var_look_nan=chi_grid)
+        chi_grid.mask = applyMask.create_mask(chi_grid.mask, [chi_grid], [-1e10],
+                                             ['=='], var_look_nan=chi_grid)
+
+        # Add chi_err and obs_err to netcdf
+        IO.ncwrite_variables(outfile, ['obs_err', 'Chi_sq'], [], [],
+                             vardata=[obs_err, chi_grid], create_vars=False,
+                             dep_lev=lev)
+
     outfile.close()

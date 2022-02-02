@@ -5,7 +5,7 @@
 #######################################################################
 import os
 import numpy as np
-import PostProcessing.functions as functions
+import modules.functions as functions
 try:
     if os.environ["HOSTNAME"][0:8] == "expspice":
         import matplotlib
