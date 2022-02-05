@@ -26,7 +26,7 @@ applyMask = applyMask()
 
 def HL_fitting_function(infile, outfilename, func_name="MultiGauss", 
                        num_funcs=2, lenscale=(400,40), plot=None, outfig='./figures', 
-                       nproc=4, min_num_obs=2, max_iter=100):
+                       nproc=4, min_num_obs=2, max_iter=100, scalefac=1.0):
 
     """ Top-level routine that fits a specific function to HL stats covariance file
 
@@ -43,8 +43,9 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
     8. nproc: number of processors to use (default: 4)
     9. min_num_obs: minimum number of observations to do calculations
     10. max_iter: max number of iterations
+    11. scalefac: factor to scale the variances when they are very small
     """
-    
+
     # Checking consistency of input parameters
     if(func_name != "MultiGauss" and func_name != "MultiGauss_Fixed"):
        raise ValueError("[ERROR] FUNCTION NOT AVAILABLE")
@@ -104,7 +105,8 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
 
         # Creating list with arguments to run in parallel
         arg_lists = Posproc.create_arg_list(x_val, cors, var, numobsvar, min_num_obs, 
-                                            func_name, num_funcs, lenscale, max_iter)
+                                            func_name, num_funcs, lenscale, max_iter,
+                                            scalefac)
         
         # Get workers to do parallel calculations
         results = workers.map(Posproc.fitter, arg_lists)
@@ -112,6 +114,12 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
 
         # Unravel results into output grids
         params, obs_err, chi_grid = Posproc.results_to_grid(results, len(lats), len(lons))
+
+        # Remove scale factor if needed
+        obs_err = obs_err/scalefac
+        for param in range(0, len(params)):
+            if "Magnitude" in arg_lists[0]["func"].param_names()[param]:
+               params[param] = params[param]/scalefac
 
         # Plot some results if requested
         if plot != None:

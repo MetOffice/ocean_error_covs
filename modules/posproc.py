@@ -32,7 +32,7 @@ class Posproc():
 
 
       def create_arg_list(self, x_val, cors, var, numobsvar, min_num_obs, 
-                          func_name, num_funcs, lenscale, max_iter):
+                          func_name, num_funcs, lenscale, max_iter, scalefac):
           """ Create list of arguments for running in parallel
 
           ******** PARAMETERS **********
@@ -45,6 +45,7 @@ class Posproc():
           7. num_funcs: number of functions to use
           8. lenscale: lengthscales to apply
           9. max_iter: max number of iterations
+          10. scalefac: factor to scale the variances in case it is needed
 
           ******** RETURNS *************
           1. arg_list: list with arguments
@@ -57,9 +58,9 @@ class Posproc():
                       cors[nn,pp,:] = np.nan
                       var[nn,pp] = np.nan
 
-                  arg_lists += [{ "covs": cors[nn,pp,:]*var[nn,pp], # NOTE: Reweighting by the central point
+                  arg_lists += [{ "covs": cors[nn,pp,:]*var[nn,pp]*scalefac, # NOTE: Reweighting by central point
                                   "x_vals": x_val[:],
-                                  "var": var[nn,pp],
+                                  "var": var[nn,pp]*scalefac,
                                   "max_iter": max_iter }]
 
                   lscales = []
@@ -70,12 +71,12 @@ class Posproc():
                   if func_name == 'MultiGauss':
                       i_guess = []
                       for i in range(0, num_funcs):
-                          i_guess.append(0.5*var[nn,pp])
+                          i_guess.append(0.5*var[nn,pp]*scalefac)
                           i_guess.append(lscales[i])
                       arg_lists[-1]["func"] = functions.MultiGaussFunction(initial_guess=i_guess, 
                                                               weights=None, num_funcs=num_funcs)
                   elif func_name == 'MultiGauss_Fixed':
-                      i_guess = [0.5*var[nn,pp]] * num_funcs
+                      i_guess = [0.5*var[nn,pp]*scalefac] * num_funcs
                       arg_lists[-1]["func"] = functions.MultiGaussFunction_FixedLenScale(initial_guess=i_guess, 
                                                         weights=None, num_funcs=num_funcs, lenscales=lscales)
                   else:
