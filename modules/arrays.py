@@ -60,6 +60,20 @@ class GridSumStats():
         return update
 
 
+class REstats():
+    def __init__(self, dims):
+        self.num_obs_in_grid = np.ma.zeros(dims, dtype=np.int32)
+        self.RE = np.ma.zeros(dims)
+        self.count = np.ma.zeros(dims)
+
+    def __add__(self, upd):
+        update = REstats(self.RE.shape)
+        update.num_obs_in_grid = self.num_obs_in_grid + upd.num_obs_in_grid
+        update.RE = self.RE + upd.RE
+        update.count = self.count + upd.count
+        return update
+
+
 class FdbkVarArrays():
     def __init__(self):
         self.obs_vals = ()

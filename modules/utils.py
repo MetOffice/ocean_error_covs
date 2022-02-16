@@ -74,4 +74,65 @@ class Utils():
           dld = np.arctan(np.sqrt(( 1. - dlx )/( 1. + dlx ))) * 222.24 / dls
           dist = dld[:] * 1000.
           return dist
-         
+
+
+      def map_lon_discontinuity(self, lon, j):
+          """ Map the longitude discontinuity for each pair of latitude
+
+          ****** PARAMETERS ******
+          1. lon: array with longitudes
+          2. j: latitude index
+
+          ******* RETURNS ********
+          1. idx1, idx2: i point where the longitude discontinuity
+                         occurs for j-1 and j
+          """
+          diff_lon = np.diff(lon[j-1,:])
+          idx1 = np.where(diff_lon == np.amin(diff_lon))[0][0] + 1
+          diff_lon = np.diff(lon[j,:])
+          idx2 = np.where(diff_lon == np.amin(diff_lon))[0][0] + 1
+          return idx1, idx2
+
+
+      def get_grid_corners(self, lon, lat, i, j, idx, lon_change=[180, -180]):
+          """ Get the grid corners
+
+          ****** PARAMETERS ******
+          1. lon: array with longitudes
+          2. lat: array with latitudes
+          3. i, j: i, j indexes
+          4. lon_change: the boundaries of the longitude discontinuity
+
+          ******* RETURNS ********
+          1. polygon1: containing the grid corners
+          2. polygon2: additional corners in case there is a longitude discontinuity
+          """
+          polygon2 = None
+          if i == idx[0] and i == idx[1]:
+              polygon1 = np.array([[lon[j-1,i-1], lat[j-1,i-1]], [lon[j,i-1], lat[j,i-1]], \
+                                  [lon_change[0], lat[j,i]], [lon_change[0], lat[j-1,i]], \
+                                  [lon[j-1,i-1], lat[j-1,i-1]]])
+              polygon2 = np.array([[lon_change[1], lat[j-1,i]], [lon_change[1], lat[j,i]], \
+                                  [lon[j,i], lat[j,i]], [lon[j-1,i], lat[j-1,i]], \
+                                  [lon_change[1], lat[j-1,i]]])
+          elif i == idx[0] and idx[0] > idx[1]:
+              polygon1 = np.array([[lon_change[1], lat[j-1,i-1]], [lon[j,i-1], lat[j,i-1]], \
+                                  [lon[j,i], lat[j,i]], [lon[j-1,i], lat[j-1,i]], \
+                                  [lon_change[1], lat[j-1,i-1]]])
+          elif i == idx[1] and idx[0] > idx[1]:
+              polygon1 = np.array([[lon[j-1,i-1], lat[j-1,i-1]], [lon[j,i-1], lat[j,i-1]], \
+                                  [lon_change[0], lat[j,i]], [lon[j-1,i], lat[j-1,i]], \
+                                  [lon[j-1,i-1], lat[j-1,i-1]]])
+          elif i == idx[0] and idx[0] < idx[1]:
+              polygon1 = np.array([[lon[j-1,i-1], lat[j-1,i-1]], [lon_change[1], lat[j,i-1]], \
+                                  [lon[j,i], lat[j,i]], [lon[j-1,i], lat[j-1,i]], \
+                                  [lon[j-1,i-1], lat[j-1,i-1]]])
+          elif i == idx[1] and idx[0] < idx[1]:
+              polygon1 = np.array([[lon[j-1,i-1], lat[j-1,i-1]], [lon[j,i-1], lat[j,i-1]], \
+                                  [lon[j,i], lat[j,i]], [lon_change[0], lat[j-1,i]],
+                                  [lon[j-1,i-1], lat[j-1,i-1]]])
+          else:
+              polygon1 = np.array([[lon[j-1,i-1], lat[j-1,i-1]], [lon[j,i-1], lat[j,i-1]], \
+                                  [lon[j,i], lat[j,i]], [lon[j-1,i], lat[j-1,i]], \
+                                  [lon[j-1,i-1], lat[j-1,i-1]]])
+          return polygon1, polygon2
