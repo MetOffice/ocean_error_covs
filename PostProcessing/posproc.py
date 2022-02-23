@@ -121,9 +121,9 @@ class Posproc():
                                  bounds=func.bounds())[0]
               obs_err = var - func.func(0, *fit)
 
-              # Set variance in chi statistic to 1. This is the best that can
-              # be done without knowing the degrees of freedom (number of obs)
-              # used to calculate the covaiances
+              # Calculate Residual Sum of Squares (RSS) values.
+              # Note: for the RSS of the function this is the same as the
+              # chi_sq statistic if all 'variances' are 1.
 
               rss_vs_func = func.chi_statistic(fit, x_vals[:], 1., covs[:])
               rss_vs_mean = sum((covs - np.mean(covs))**2.)
@@ -144,7 +144,7 @@ class Posproc():
           2. obs_err: obs error gridded
           3. chi: chi squares gridded
           4. dof: degrees of freedom for the fit
-                  ( = Number of points - number of parameters - 1)
+                  ( = Number of points - number of parameters)
           """
 
           rss_func_grid = ma.zeros((nlat, nlon))

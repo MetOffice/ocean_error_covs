@@ -19,8 +19,6 @@ from PostProcessing.posproc import Posproc
 from PostProcessing.plot import Plots
 from scipy.stats import f
 
-import matplotlib.pyplot as plt
-
 # Initialising the classes
 IO = IO()
 Posproc = Posproc()
@@ -142,7 +140,7 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
 
 def f_test_pvalue(rss_func, rss_mean, num_param, num_points):
     """
-    Calculate p_value using the F-test
+    Calculate p_value using an F-test comparing again the fit of the mean.
     Inputs:
         rss_func:   Residual sum of squares against the fitted function
         rss_mean:   Residual sum of squares against the mean
@@ -157,9 +155,8 @@ def f_test_pvalue(rss_func, rss_mean, num_param, num_points):
         msk = (num_points <= 0) | num_points.mask
     else:
         msk = (num_points <= 0)
-    masked_ones = ma.ones(num_points.shape, dtype=int)
-    masked_ones.mask = msk
-    dof_numerator = (num_param - 1) * masked_ones
+    dof_numerator = (num_param - 1) * ma.array(np.ones(num_points.shape,
+                                                       dtype=int), mask=msk)
     dof_denominator = ma.array(num_points - num_param, mask=msk)
     test_stat = ma.array((((rss_mean - rss_func )/dof_numerator) /
                          (rss_func/dof_denominator)), mask=msk)

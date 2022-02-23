@@ -132,13 +132,14 @@ class IO():
         ******* PARAMETERS *******
         1. outfile: Netcdf object 
         2. func: instance of fitting function
-        3. chi_grid: gridded chi squared criterion
-        4. dof_grid: Degrees of freedom of the fit
-        4. obs_err: gridded obs error 
-        5. params: results of fitting function
-        6. lev: depth level
-        7. p_val: p_val to write out (This is the probability that the
-        fit is better than the mean, via an f-test)
+        3. rss_func_grid: gridded RSS value of function fit
+        4. rss_mean_grid: gridded RSS value of covariances about their mean
+        5. dof_grid: Degrees of freedom of the fit
+        6. obs_err: gridded obs error
+        7. params: results of fitting function
+        8. lev: depth level
+        9. p_val: p_val to write out (This is the probability that the
+        fit is better than the mean, via an F-test)
         """ 
 
         # masking variables
