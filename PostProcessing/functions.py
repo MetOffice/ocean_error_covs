@@ -61,8 +61,8 @@ class BaseFunction():
             y_true:       true values at each x
         """
 
-        func_cal = self.func(x, *func_params)
-        chi_stat = np.sum(((y_true - func_cal)**2.) / var)
+        func_val = self.func(x, *func_params)
+        chi_stat = np.sum(((y_true - func_val)**2.) / var)
 
         return chi_stat
         
