@@ -125,28 +125,39 @@ class IO():
         outfile.variables["depth"][:] = depths
 
 
-    def ncwrite_output(self, outfile, func, chi_grid, obs_err, params, lev):
+    def ncwrite_output(self, outfile, func, rss_func_grid, rss_mean_grid,
+                       dof_grid, obs_err, params, lev, p_val=None):
         """ Write variables of netcdf file per depth level
         
         ******* PARAMETERS *******
         1. outfile: Netcdf object 
         2. func: instance of fitting function
         3. chi_grid: gridded chi squared criterion
+        4. dof_grid: Degrees of freedom of the fit
         4. obs_err: gridded obs error 
         5. params: results of fitting function
-        6. lev: depth level 
+        6. lev: depth level
+        7. p_val: p_val to write out (This is the probability that the
+        fit is better than the mean, via an f-test)
         """ 
 
         # masking variables
-        msk = np.logical_or(chi_grid == self.MASK_VAL, np.isnan(chi_grid))
-        chi_grid.mask = msk
+        msk = np.logical_or(rss_func_grid == self.MASK_VAL,
+                            np.isnan(rss_func_grid))
+        rss_func_grid.mask = msk
+        rss_mean_grid.mask = msk
         obs_err.mask  = msk
+        dof_grid.mask = msk
         for param in range(0, len(params)):
-            params[param].mask = msk   
+            params[param].mask = msk
         
         # write data per depth level
-        outfile.variables["Chi_sq"][lev,:,:] = chi_grid
+        outfile.variables["RSS"][lev,:,:] = rss_func_grid
+        outfile.variables["RSS_vs_mean"][lev, :, :] = rss_mean_grid
+        outfile.variables["degrees_of_freedom"][lev, :, :] = dof_grid
         outfile.variables["obs_err"][lev,:,:] = obs_err
+        if p_val is not None:
+            outfile.variables["P_val"][lev, :, :] = p_val
         for param in range(0, len(params)):
             outfile.variables[func.param_names()[param]][lev,:,:] = params[param][:,:]
 

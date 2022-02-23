@@ -300,6 +300,7 @@ class HLerrorCovs():
               4. grid_var: grid variance 
               5. num_obs_in_grid: number of obs within squared grid
               6. num_pairs_in_cov: number of covariance pairs for each bin at each grid
+              7. stderr_xy: Standard error of the covariance estimate
           """
               
           # Variance of x
@@ -314,6 +315,10 @@ class HLerrorCovs():
  
           cov_xy = np.ma.zeros((nlat, nlon, nbin))
           corr_xy = np.ma.zeros((nlat, nlon, nbin))
+
+          # The std error on the variance is var * sqrt(2/(N-1)) for a Guassian
+          # Using that (see https://web.eecs.umich.edu/~fessler/papers/files/tr/stderr.pdf)
+          stderr_xy = np.ma.zeros((nlat, nlon, nbin))
  
           # Covariance and correlation for each bin
           for n in range(0, nbin):
@@ -321,6 +326,7 @@ class HLerrorCovs():
                              (sum_stats.sum_x[:,:,n]/sum_stats.num_pairs_in_cov[:,:,n])* \
                              (sum_stats.sum_y[:,:,n]/sum_stats.num_pairs_in_cov[:,:,n])
               corr_xy[:,:,n] = cov_xy[:,:,n]/np.ma.sqrt(var_x[:,:,n]*var_y[:,:,n])
+              stderr_xy[:,:,n] =
  
           # Squared grid mean binned error and variance
           grid_mean = grid_stats.grid_sum/grid_stats.num_obs_in_grid

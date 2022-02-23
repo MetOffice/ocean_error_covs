@@ -170,7 +170,7 @@ def HL_error_covs(list_of_files, outfilename="corrs.nc"):
             final_grid_stats += grid_stats
 
         # Calculate correlation and covariancee
-        cov_xy, corr_xy, grid_mean, grid_var, numobsgrid, \
+        cov_xy, corr_xy, grid_mean, grid_var, numobsgrid, stderr_xy \
         numpairscov, grid_mean_obstd = HLerrorCovs.calc_err_covs(final_cov_stats,
                                               final_grid_stats, nbin, nlat, nlon)
 

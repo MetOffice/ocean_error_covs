@@ -211,6 +211,9 @@ class IO():
                                fill_value=self.fill_value)
         outfile.createVariable("Correlation", 'f', dimensions=("depth","latitude", "longitude", "bins"), 
                                  fill_value=1.e10)
+        outfile.createVariable("STD_Covariance_error", 'f', dimensions=(
+        "depth", "latitude", "longitude", "bins"),
+                               fill_value=self.fill_value)
 
 
     def ncwrite_dimension_variables(self, outfile, grid_lat, grid_lon, 
