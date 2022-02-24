@@ -10,14 +10,13 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
-import numpy as np
-import numpy.ma as ma
+
 from multiprocessing import Pool
 ################## Code modules ##############################
 from PostProcessing.io_data import IO
 from PostProcessing.posproc import Posproc
 from PostProcessing.plot import Plots
-from scipy.stats import f
+from PostProcessing.StatisticTests import f_test_pvalue
 
 # Initialising the classes
 IO = IO()
@@ -105,13 +104,10 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
         params, obs_err, rss_func_grid, rss_mean_grid, dof = (
                         Posproc.results_to_grid(results, len(lats), len(lons)))
 
-        # Plot some results if requested
-        if plot != None:
-           print("MESSAGE: Plotting results - data versus fitting: " + str(depth[lev]) + " m")
-           Plots.plot_data_vs_fitting(outfig, plot, x_val, cors, var, obs_err, lats, lons,
-                                       depth[lev], params, func_name, num_funcs, lenscale)
+
 
         # If requested perform F-test comparing to mean
+        p_val = None
         if f_test:
             if (func_name == "MultiGauss"):
                 num_params = 2 * num_funcs
@@ -122,8 +118,16 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
                                  + f"function={func_name}")
             p_val = f_test_pvalue(rss_func_grid, rss_mean_grid, num_params,
                            num_params + dof)
-        else:
-            p_val = None
+
+        # Plot some results if requested
+        if plot != None:
+            print("MESSAGE: Plotting results - data versus fitting: " + str(
+                depth[lev]) + " m")
+            Plots.plot_data_vs_fitting(outfig, plot, x_val, cors, var,
+                                       obs_err, lats, lons,
+                                       depth[lev], params, func_name,
+                                       num_funcs, lenscale, p_val)
+
 
         print(f"MESSAGE: Writing data to netcdf file: {outfile}")
         if lev == 0:
@@ -137,36 +141,3 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
                           rss_mean_grid, dof, obs_err, params, lev, p_val=p_val)
     
     outfile.close()
-
-def f_test_pvalue(rss_func, rss_mean, num_param, num_points):
-    """
-    Calculate p_value using an F-test comparing again the fit of the mean.
-    Inputs:
-        rss_func:   Residual sum of squares against the fitted function
-        rss_mean:   Residual sum of squares against the mean
-        num_param:  number of parameters for fit
-        num_points: number of points in the fit
-    Returns:
-        p_value of the F-test
-    """
-
-    # Calculate the test statistic
-    if hasattr(num_points,'mask'):
-        msk = (num_points <= 0) | num_points.mask
-    else:
-        msk = (num_points <= 0)
-    dof_numerator = (num_param - 1) * ma.array(np.ones(num_points.shape,
-                                                       dtype=int), mask=msk)
-    dof_denominator = ma.array(num_points - num_param, mask=msk)
-    test_stat = ma.array((((rss_mean - rss_func )/dof_numerator) /
-                         (rss_func/dof_denominator)), mask=msk)
-
-    # Calculate the p value
-    p_value = ma.array(np.zeros(dof_numerator.shape), mask=msk, dtype=float)
-    for n in range(dof_numerator.shape[0]):
-        for p in range(dof_numerator.shape[1]):
-            if not msk[n, p]:
-                f_dist = f(dfn=dof_numerator[n, p], dfd=dof_denominator[n, p])
-                p_value[n, p] = f_dist.cdf(test_stat[n, p])
-
-    return p_value
