@@ -50,6 +50,7 @@ class CalcREs():
           latobs = np.array([])
           lonobs = np.array([])
           obs_vals = np.array([])
+          idx = args["thinning"]
           for f in args["list_of_files"]:
               print("Opening file: {}".format(f))
 
@@ -71,6 +72,10 @@ class CalcREs():
 
           # Making pairs of lon, lat for obs locations
           obs_lonlat = np.array([list(pair) for pair in zip(lonobs, latobs)])
+
+          # Subsampling obs data
+          obs_lonlat = obs_lonlat[::idx,:]
+          obs_vals = obs_vals[::idx]
 
           print("Calculating RE within a time window of {} day(s)".format(len(args["list_of_files"])))
           start_time = time()

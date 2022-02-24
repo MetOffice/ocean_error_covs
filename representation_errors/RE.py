@@ -21,7 +21,7 @@ CalcREs = CalcREs()
 def RE_unresolved_scales(list_of_fdbackfiles, model_mesh_file, obs_type="SLA",
                  outfilename="RE_stats.nc", source_types=[], qc_val=[], min_num_obs=5,
                  depth_lev=[0], latcen='gphit', loncen='glamt', latcor='gphit',
-                 loncor='glamf', mask='tmaskutil', lon_discontinuity=True):
+                 loncor='glamf', mask='tmaskutil', thinning=1, lon_discontinuity=True):
 
     """ Top-level routine that calculates the representation error due to
         model unresolved scales based on Oke & Sakov (2008).
@@ -45,7 +45,8 @@ def RE_unresolved_scales(list_of_fdbackfiles, model_mesh_file, obs_type="SLA",
     11. latcor: variable name of the latitudes at the corners of grid cell
     12. loncor: variable name of the longitudes at the corners of grid cell
     13. mask: mask array (None in case mask is not provided)
-    14. lon_discontinuity: True in case there is discontinuity in longitude
+    14. thinning: number to subsample obs
+    15. lon_discontinuity: True in case there is discontinuity in longitude
                            (e.g. 180 to -180)
     """
     # Check list of feedack files
@@ -87,6 +88,7 @@ def RE_unresolved_scales(list_of_fdbackfiles, model_mesh_file, obs_type="SLA",
                     "loncor": loncor,
                     "mask": mask,
                     "depth": depth_lev[dep_lev],
+                    "thinning": thinning,
                     "lon_discontinuity": lon_discontinuity}
 
         # Calculating REs for a specific time window
