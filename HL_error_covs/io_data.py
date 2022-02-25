@@ -212,7 +212,6 @@ class IO():
         outfile.createVariable("Correlation", 'f', dimensions=("depth","latitude", "longitude", "bins"), 
                                  fill_value=1.e10)
 
-
     def ncwrite_dimension_variables(self, outfile, grid_lat, grid_lon, 
                                     depths, bins):
         """ Write variables that are part of the netcdf dimensions 

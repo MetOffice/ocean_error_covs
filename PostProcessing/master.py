@@ -10,12 +10,13 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
-import numpy as np
+
 from multiprocessing import Pool
 ################## Code modules ##############################
 from PostProcessing.io_data import IO
 from PostProcessing.posproc import Posproc
 from PostProcessing.plot import Plots
+from PostProcessing.StatisticTests import f_test_pvalue
 
 # Initialising the classes
 IO = IO()
@@ -24,7 +25,7 @@ Plots = Plots()
 
 def HL_fitting_function(infile, outfilename, func_name="MultiGauss", 
                        num_funcs=2, lenscale=(400,40), plot=None, outfig='./figures', 
-                       nproc=4, min_num_obs=2, max_iter=100):
+                       nproc=4, min_num_obs=2, max_iter=100, f_test=True):
 
     """ Top-level routine that fits a specific function to HL stats covariance file
 
@@ -41,6 +42,7 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
     8. nproc: number of processors to use (default: 4)
     9. min_num_obs: minimum number of observations to do calculations
     10. max_iter: max number of iterations
+    11. f_test perform an f_test on the result and write out the p value
     """
     
     # Checking consistency of input parameters
@@ -67,8 +69,16 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
     outfile.Function = "Function fitting done using the "+func_name+" function"
         
     # Add variables
-    IO.nc_define_vars(outfile, "Chi_sq", 'f', ("depth","latitude","longitude"))
+    IO.nc_define_vars(outfile, "RSS", 'f',
+                      ("depth","latitude","longitude"))
+    IO.nc_define_vars(outfile, "RSS_vs_mean", 'f',
+                      ("depth", "latitude", "longitude"))
+    IO.nc_define_vars(outfile, "degrees_of_freedom", 'i',
+                      ("depth", "latitude", "longitude"))
     IO.nc_define_vars(outfile, "obs_err", 'f', ("depth","latitude","longitude"))
+    if f_test:
+        IO.nc_define_vars(outfile, "P_val", 'f',
+                          ("depth", "latitude", "longitude"))
 
     # Calculate x positions based on the separation distances
     x_val = Posproc.calc_x_positions(bins)
@@ -91,22 +101,43 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
         workers.close()
 
         # Unravel results into output grids
-        params, obs_err, chi_grid = Posproc.results_to_grid(results, len(lats), len(lons))
+        params, obs_err, rss_func_grid, rss_mean_grid, dof = (
+                        Posproc.results_to_grid(results, len(lats), len(lons)))
+
+
+
+        # If requested perform F-test comparing to mean
+        p_val = None
+        if f_test:
+            if (func_name == "MultiGauss"):
+                num_params = 2 * num_funcs
+            elif (func_name == "MultiGauss_Fixed"):
+                num_params = num_funcs
+            else:
+                raise ValueError("Cannot calculate num_params for "
+                                 + f"function={func_name}")
+            p_val = f_test_pvalue(rss_func_grid, rss_mean_grid, num_params,
+                           num_params + dof)
 
         # Plot some results if requested
         if plot != None:
-           print("MESSAGE: Plotting results - data versus fitting: " + str(depth[lev]) + " m")
-           Plots.plot_data_vs_fitting(outfig, plot, x_val, cors, var, obs_err, lats, lons,
-                                       depth[lev], params, func_name, num_funcs, lenscale)
-                                      
+            print("MESSAGE: Plotting results - data versus fitting: " + str(
+                depth[lev]) + " m")
+            Plots.plot_data_vs_fitting(outfig, plot, x_val, cors, var,
+                                       obs_err, lats, lons,
+                                       depth[lev], params, func_name,
+                                       num_funcs, lenscale, p_val)
+
+
         print(f"MESSAGE: Writing data to netcdf file: {outfile}")
         if lev == 0:
            for param in range(0, len(params)):
                # Define netcdf variables from fitting function results
                IO.nc_define_vars(outfile, arg_lists[0]["func"].param_names()[param],
                                  'f', ("depth","latitude","longitude"))
-      
+
         # Add variables to netcdf
-        IO.ncwrite_output(outfile, arg_lists[0]["func"], chi_grid, obs_err, params, lev) 
+        IO.ncwrite_output(outfile, arg_lists[0]["func"], rss_func_grid,
+                          rss_mean_grid, dof, obs_err, params, lev, p_val=p_val)
     
     outfile.close()
