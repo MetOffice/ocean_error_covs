@@ -19,7 +19,7 @@ count = 1
 output_files = []
 for i in range(1, 90, inc):
     print("MESSAGE: RUNNING SCRIPT TO GENERATE HL ACCUMULATED STATS FILES - STEP {}".format(count))
-    list_of_files = ["test_files/HL_random_sample_" + str(n) + ".nc" for n in range(i, i+inc)]
+    list_of_files = ["../test_files/HL_random_sample_" + str(n) + ".nc" for n in range(i, i+inc)]
     HL.HL_cov_accum_stats(list_of_files, obs_type="VAR", source_types=[34], bins=bins,
                               grid_def=[[-8.0, -2.0, 1.0],[-24.0,-18.0,1.0]], depth_boundaries=[],
                               outfilename=filename, qc_val=qc, nproc=nproc)

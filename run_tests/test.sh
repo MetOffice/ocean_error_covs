@@ -8,24 +8,30 @@
 # Must be run from within ocean_error_covs/run_test
 #################################################
 # Enter with scratch folder location to run a simple test
-scratch="${SCRATCH}/scratch_HL_error_covs"
+scratch="${SCRATCH}/scratch_ocean_error_covs"
 #################################################
 mkdir -p ${scratch}/HL_error_covs
 mkdir -p ${scratch}/PostProcessing
+mkdir -p ${scratch}/REs
+mkdir -p ${scratch}/ancillary
 
 # Set directory and pythonpath
 pd=$(pwd)
 export PYTHONPATH="${pd}/../:${pd}/run_tests:${PYTHONPATH}"
 
-# Copying files to scratch folder (error covariance calculation step)
-cp test_files_HLerrorcov.tar.gz ${scratch}/HL_error_covs     # copying the files for the test
+cp test_files.tar.gz ${scratch}     # copying the files for the test
+cd ${scratch}
 
-######## Calculate HL error covariances with random values for a 2D var ##########
-cd ${scratch}/HL_error_covs
-tar -zxf test_files_HLerrorcov.tar.gz                        # decompress files 
+tar -zxf test_files.tar.gz                           # decompress files
+mv test_files/model_mesh.nc ${scratch}/ancillary     # moving to ancillary
 
+#################################################################
+######## RUNNING SET OF TESTS FOR HL ERROR COVARIANCES ##########
+#################################################################
 echo $(date)
 echo "RUNNING CODE TO CALCULATE HL ERROR COVARIANCES"
+
+cd ${scratch}/HL_error_covs
 python3 ${pd}/test_HL_calc.py
 if [ $? -ne 0 ]; then
    echo "[ERROR] TEST TO CALCULATE HL ERROR COVARIANCES HAS FAILED"
@@ -33,7 +39,6 @@ if [ $? -ne 0 ]; then
    exit 1
 fi
 
-################## Fitting functions to HL error covariances ####################
 cd ${scratch}/PostProcessing
 
 # Copying HL results to PostProcessing folder
@@ -48,7 +53,20 @@ if [ $? -ne 0 ]; then
    exit 1
 fi
 
+################################################################
+####### RUNNING SET OF TESTS FOR REPRESENTATION ERRORS #########
+################################################################
+echo $(date)
+echo "RUNNING CODE TO CALCULATE REPRESENTATION ERRORS"
+cd ${scratch}/REs
+python3 ${pd}/test_RE.py
+if [ $? -ne 0 ]; then
+   echo "[ERROR] TEST TO CALCULATE REPRESENTATION ERRORS HAS FAILED"
+   echo $(date)
+   exit 1
+fi
+
 cd ${pd}
-echo "TEST HAS BEEN COMPLETED SUCCESSFULLY"
+echo "ALL TESTS HAVE BEEN COMPLETED SUCCESSFULLY"
 echo $(date)
 exit 0
