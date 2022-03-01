@@ -23,7 +23,7 @@ class Plots():
          self.plotting = plotting
 
       def plot_data_vs_fitting(self, outfig, plot, x_val, cors, var, obs_err, lats, lons, 
-                               depth, params, func_name, num_funcs, lenscale):
+                               depth, params, func_name, num_funcs, lenscale, p_val=None):
 
           # Creating directory for figures if dont exist already
           os.system("mkdir -p %s " % (outfig))
@@ -73,7 +73,10 @@ class Plots():
               title_string = "Fit %s%s | %s%s | %sm | LengthScales:" % (str(abs(round(lat,2))), 
                                        slat, str(abs(round(lon,2))), slon, str(round(depth,2)))
               for n in range(0, len(lscales)):
-                  title_string = title_string + " %skm" % (str(round(lscales[n],2)))
+                  title_string += " %skm" % (str(round(lscales[n],2)))
+              if p_val is not None:
+                  title_string += (
+                      f" | P value: {p_val[plot_pos[1], plot_pos[0]]:4.3f}")
               f1 = plt.figure()
               plt.title(title_string)
 
@@ -93,7 +96,8 @@ class Plots():
               plt.ylabel('Covariance')
               plt.xlabel('Separation Distance (km)')
               plt.legend()
-              plt.savefig("%s/Fit_%s_lat_%s%s_lon_%s%s_dep_%sm.png" % (outfig, func_name, 
+
+              plt.savefig("%s/Fit_%s_lat_%s%s_lon_%s%s_dep_%sm.png" % (outfig, func_name,
                           str(abs(round(lat,2))), slat, str(abs(round(lon,2))), slon, str(round(depth,2))))
               plt.close()
 

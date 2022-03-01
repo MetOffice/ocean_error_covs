@@ -10,23 +10,26 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
-import numpy as np
+
 from multiprocessing import Pool
 ################## Code modules ##############################
 from modules.io_data import IO
 from modules.plot import Plots
 from modules.masks import applyMask
 from modules.posproc import Posproc
+from modules.StatisticTests import StatsTests
 
 # Initialising the classes
 IO = IO()
 Posproc = Posproc()
 Plots = Plots()
 applyMask = applyMask()
+StatsTests = StatsTests()
+
 
 def HL_fitting_function(infile, outfilename, func_name="MultiGauss", 
                        num_funcs=2, lenscale=(400,40), plot=None, outfig='./figures', 
-                       nproc=4, min_num_obs=2, max_iter=100, scalefac=1.0):
+                       nproc=4, min_num_obs=2, max_iter=100, scalefac=1.0, f_test=True):
 
     """ Top-level routine that fits a specific function to HL stats covariance file
 
@@ -44,6 +47,7 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
     9. min_num_obs: minimum number of observations to do calculations
     10. max_iter: max number of iterations
     11. scalefac: factor to scale the variances when they are very small
+    12. f_test perform an f_test on the result and write out the p value
     """
 
     # Checking consistency of input parameters
@@ -78,8 +82,10 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
     outfile.Function = "Function fitting done using the "+func_name+" function"
         
     # Add variables
-    IO.ncwrite_variables(outfile, ['Chi_sq', 'obs_err'],
-                         ['f', 'f'], ('depth', 'latitude', 'longitude'))
+    IO.ncwrite_variables(outfile, ['RSS', 'RSS_vs_mean', 'degrees_of_freedom', 'obs_err'],
+                         ['f', 'f', 'i', 'f'], ('depth', 'latitude', 'longitude'))
+    if f_test:
+       IO.ncwrite_variables(outfile, ['P_val'], ['f'], ('depth', 'latitude', 'longitude'))
 
     # Calculate x positions based on the separation distances
     x_val = Posproc.calc_x_positions(bins)
@@ -113,7 +119,20 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
         workers.close()
 
         # Unravel results into output grids
-        params, obs_err, chi_grid = Posproc.results_to_grid(results, len(lats), len(lons))
+        params, obs_err, rss_func_grid, rss_mean_grid, dof = \
+                            Posproc.results_to_grid(results, len(lats), len(lons))
+
+        # If requested perform F-test comparing to mean
+        p_val = None
+        if f_test:
+            if (func_name == "MultiGauss"):
+                num_params = 2 * num_funcs
+            elif (func_name == "MultiGauss_Fixed"):
+                num_params = num_funcs
+            else:
+                raise ValueError(f"[ERROR] Cannot calculate num_params for function={func_name}")
+            p_val = StatsTests.f_test_pvalue(rss_func_grid, rss_mean_grid,
+                                             num_params, num_params + dof)
 
         # Remove scale factor if needed
         obs_err = obs_err/scalefac
@@ -125,9 +144,7 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
         if plot != None:
            print(f"MESSAGE: Plotting results - data versus fitting: {depth[lev]} m")
            Plots.plot_data_vs_fitting(outfig, plot, x_val, cors, var, obs_err, lats, lons,
-                                       depth[lev], params, func_name, num_funcs, lenscale)
-
-        print(f"MESSAGE: Writing data to netcdf file: {outfilename}")
+                                      depth[lev], params, func_name, num_funcs, lenscale, p_val)
 
         for param in range(0, len(params)):
             if lev == 0:
@@ -136,23 +153,32 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
                                      ['f'], ('depth', 'latitude', 'longitude'))
 
             # Masking function fitting outputs
-            params[param].mask = applyMask.create_mask(params[param].mask, [chi_grid],
-                                                [-1e10], ['=='], var_look_nan=chi_grid)
+            params[param].mask = applyMask.create_mask(params[param].mask, [rss_func_grid],
+                                                [-1e10], ['=='], var_look_nan=rss_func_grid)
 
             # Adding function fitting parameter to netcdf
             IO.ncwrite_variables(outfile, [arg_lists[0]["func"].param_names()[param]],
                                  [], [], vardata=[params[param]], create_vars=False,
                                  dep_lev=lev)
 
-        # Masking chi_err and obs_err
-        obs_err.mask = applyMask.create_mask(obs_err.mask, [chi_grid], [-1e10],
-                                             ['=='], var_look_nan=chi_grid)
-        chi_grid.mask = applyMask.create_mask(chi_grid.mask, [chi_grid], [-1e10],
-                                             ['=='], var_look_nan=chi_grid)
+        # Masking RSS and obs_err
+        rss_func_grid.mask = applyMask.create_mask(rss_func_grid.mask, [rss_func_grid], [-1e10],
+                                             ['=='], var_look_nan=rss_func_grid)
+        rss_mean_grid.mask = applyMask.create_mask(rss_mean_grid.mask, [rss_func_grid], [-1e10],
+                                             ['=='], var_look_nan=rss_func_grid)
+        obs_err.mask = applyMask.create_mask(obs_err.mask, [rss_func_grid], [-1e10],
+                                             ['=='], var_look_nan=rss_func_grid)
 
         # Add chi_err and obs_err to netcdf
-        IO.ncwrite_variables(outfile, ['obs_err', 'Chi_sq'], [], [],
-                             vardata=[obs_err, chi_grid], create_vars=False,
-                             dep_lev=lev)
+        IO.ncwrite_variables(outfile, ['obs_err', 'RSS', 'RSS_vs_mean', 'degrees_of_freedom'],
+                             [], [], vardata=[obs_err, rss_func_grid, rss_mean_grid, dof],
+                             create_vars=False, dep_lev=lev)
+
+        # Add P-val to netcdf
+        if f_test:
+            p_val.mask = applyMask.create_mask(p_val.mask, [rss_func_grid], [-1e10],
+                                              ['=='], var_look_nan=rss_func_grid)
+            IO.ncwrite_variables(outfile, ['P_val'], [], [], vardata=[p_val],
+                                 create_vars=False, dep_lev=lev)
 
     outfile.close()

@@ -51,6 +51,20 @@ class BaseFunction():
         """
         return np.sum( (y_true-self.func(x,*func_params))**2. )
 
+    def chi_statistic(self, func_params, x, var, y_true):
+        """Calculates the chi statistic for a fit
+        chi = sum( (model_i-observation_i)^2 / var_i )
+        INPUTS
+            func_params:  list of parameters to pass to function
+            x:            x values
+            var:          variance of observations at x
+            y_true:       true values at each x
+        """
+
+        func_val = self.func(x, *func_params)
+        chi_stat = np.sum(((y_true - func_val)**2.) / var)
+
+        return chi_stat
         
     def cost_grad(self, func_params, x, y_true):
         """

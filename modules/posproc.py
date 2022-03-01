@@ -96,7 +96,8 @@ class Posproc():
           ************* RETURNS *************
           1. fit: fitting results
           2. obs_err: obs error 
-          3. chi: chi squares criterion to check quality of fitting procedure
+          3. rss_vs_func: Residual sum of squares from fitting
+          4. rss_vs_mean: Residual sum of squares from mean covs
           """
           
           # Read arguments
@@ -107,19 +108,29 @@ class Posproc():
           max_iter = args["max_iter"]
               
           #check the corrs for nans and calculate fit
-          nans = np.isnan(covs) 
-          if np.sum(nans) == covs.shape[0]:
+          nans = np.isnan(covs)
+          num_points = np.sum(np.logical_not(nans))
+          if num_points < func.num_params() + 1:
               fit = self.MASK_VAL*np.ones((func.num_params()))
               obs_err = self.MASK_VAL
-              chi = self.MASK_VAL
+              rss_vs_func  = self.MASK_VAL
+              rss_vs_mean = self.MASK_VAL
+              num_points = int(self.MASK_VAL)
           else:
               #NOTE: we do not use the zero point in the fitting in order to get the obs error
               fit = opt.fmin_tnc(func.cost_func, func.init_guess(), disp=0, fprime=func.cost_grad,
                                  maxfun=max_iter, args=(x_vals[:], covs[:]),
                                  bounds=func.bounds())[0]
               obs_err = var - func.func(0, *fit)
-              chi = func.cost_func(fit, x_vals[:], covs[:])
-          return (fit, obs_err, chi)
+
+              # Calculate Residual Sum of Squares (RSS) values.
+              # Note: for the RSS of the function this is the same as the
+              # chi_sq statistic if all 'variances' are 1.
+
+              rss_vs_func = func.chi_statistic(fit, x_vals[:], 1., covs[:])
+              rss_vs_mean = np.sum((covs - np.mean(covs))**2.)
+
+          return (fit, obs_err, rss_vs_func, rss_vs_mean, num_points)
 
 
       def results_to_grid(self, results, nlat, nlon):
@@ -134,10 +145,14 @@ class Posproc():
           1. params: fitting parameters gridded
           2. obs_err: obs error gridded
           3. chi: chi squares gridded
+          4. dof: degrees of freedom for the fit
+                  ( = Number of points - number of parameters)
           """
 
-          chi_grid=ma.zeros((nlat, nlon))
+          rss_func_grid = ma.zeros((nlat, nlon))
+          rss_mean_grid = ma.zeros((nlat, nlon))
           obs_err=ma.zeros((nlat, nlon))
+          dof_grid = ma.zeros((nlat, nlon), dtype=int)
           num_params = len(results[0][0][:])
           params = []
           for param in range(0, num_params):
@@ -149,7 +164,9 @@ class Posproc():
                 for param in range(0, num_params):
                     params[param][nn,pp] = results[n][0][param]
                 obs_err[nn,pp] = results[n][1]
-                chi_grid[nn,pp] = results[n][2]
+                rss_func_grid[nn,pp] = results[n][2]
+                rss_mean_grid[nn,pp] = results[n][3]
+                dof_grid[nn,pp] = results[n][4] - num_params
                 n += 1
 
-          return params, obs_err, chi_grid
+          return params, obs_err, rss_func_grid, rss_mean_grid, dof_grid

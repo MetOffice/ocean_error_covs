@@ -11,7 +11,7 @@
 scratch="${SCRATCH}/scratch_ocean_error_covs"
 #################################################
 mkdir -p ${scratch}/HL_error_covs
-mkdir -p ${scratch}/PostProcessing
+mkdir -p ${scratch}/HL_function_fitting
 mkdir -p ${scratch}/REs
 mkdir -p ${scratch}/ancillary
 
@@ -20,6 +20,7 @@ pd=$(pwd)
 export PYTHONPATH="${pd}/../:${pd}/run_tests:${PYTHONPATH}"
 
 cp test_files.tar.gz ${scratch}     # copying the files for the test
+cp -rf ../KGO ${scratch}            # copying the KGO files for the test
 cd ${scratch}
 
 tar -zxf test_files.tar.gz                           # decompress files
@@ -39,9 +40,15 @@ if [ $? -ne 0 ]; then
    exit 1
 fi
 
-cd ${scratch}/PostProcessing
+python3 ${pd}/test_valid_results_with_KGOs.py ${scratch}/KGO/HL_error_covs ${scratch}/HL_error_covs "*.nc"
+if [ $? -ne 0 ]; then
+   echo "[ERROR] KGO TEST FOR HL ERROR COVARIANCES HAS FAILED"
+   echo $(date)
+   exit 1
+fi
 
-# Copying HL results to PostProcessing folder
+#################################################################
+cd ${scratch}/HL_function_fitting
 cp ${scratch}/HL_error_covs/HL_errorcovs.nc .
 
 echo "RUNNING CODE TO FIT HL ERROR COVARIANCES TO A FUNCTION"
@@ -49,6 +56,13 @@ echo $(date)
 python3 ${pd}/test_HL_fitting.py
 if [ $? -ne 0 ]; then
    echo "[ERROR] TEST TO DO THE FITTING HAS FAILED"
+   echo $(date)
+   exit 1
+fi
+
+python3 ${pd}/test_valid_results_with_KGOs.py ${scratch}/KGO/HL_function_fitting ${scratch}/HL_function_fitting "*.nc"
+if [ $? -ne 0 ]; then
+   echo "[ERROR] KGO TEST FOR HL ERROR FUNCTION FITTING HAS FAILED"
    echo $(date)
    exit 1
 fi
@@ -66,6 +80,14 @@ if [ $? -ne 0 ]; then
    exit 1
 fi
 
+python3 ${pd}/test_valid_results_with_KGOs.py ${scratch}/KGO/REs ${scratch}/REs "*.nc"
+if [ $? -ne 0 ]; then
+   echo "[ERROR] KGO TEST FOR HL ERROR FUNCTION FITTING HAS FAILED"
+   echo $(date)
+   exit 1
+fi
+
+#################################################################
 cd ${pd}
 echo "ALL TESTS HAVE BEEN COMPLETED SUCCESSFULLY"
 echo $(date)
