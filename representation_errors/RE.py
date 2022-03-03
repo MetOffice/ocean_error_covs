@@ -56,7 +56,7 @@ def RE_unresolved_scales(list_of_fdbackfiles, model_mesh_file, obs_type="SLA",
 
     # Check model mesh file
     model_mesh_file = Utils.check_files([model_mesh_file])
-    if list_of_fdbackfiles is None:
+    if model_mesh_file is None:
        raise ValueError("[ERROR] MODEL_MESH_FILE NOT FOUND")
 
     latmod = IO.ncread_variables(model_mesh_file[0], [latcen], dep_lev=0)[0]
@@ -72,7 +72,7 @@ def RE_unresolved_scales(list_of_fdbackfiles, model_mesh_file, obs_type="SLA",
     IO.ncwrite_variables(outfile, ['depth'], ['f'], ('z'), [depth_lev])
 
     # Create 3D netcdf variables (accumulated stats)
-    IO.ncwrite_variables(outfile, ['RE', 'GridNumObs', 'Count'],
+    IO.ncwrite_variables(outfile, ['RepErr', 'GridNumObs', 'Count'],
                          ['f', 'i', 'i'], ('z', 'y', 'x'))
 
     for dep_lev in range(0, len(depth_lev)):
@@ -95,7 +95,7 @@ def RE_unresolved_scales(list_of_fdbackfiles, model_mesh_file, obs_type="SLA",
         RE = CalcREs.calc_RE_unresolved_scales(arg_list)
 
         # Write RE stats to output file
-        IO.ncwrite_variables(outfile, ['RE', 'GridNumObs', 'Count'], [], [],
+        IO.ncwrite_variables(outfile, ['RepErr', 'GridNumObs', 'Count'], [], [],
                              vardata=[RE.RE, RE.num_obs_in_grid , RE.count],
                              create_vars=False, dep_lev=dep_lev)
     outfile.close()
@@ -130,7 +130,7 @@ def calc_RE_season(list_of_files, outfilename="RE.nc"):
     IO.ncwrite_variables(outfile, ['depth'], ['f'], ('z'), [depths])
 
     # Add netcdf variables
-    IO.ncwrite_variables(outfile, ['RE', 'GridMeanNumObs'], ['f', 'f'],
+    IO.ncwrite_variables(outfile, ['RepErr', 'GridMeanNumObs'], ['f', 'f'],
                          ('z', 'y', 'x'), fill_value=[1e10, 1e10])
 
 
@@ -140,7 +140,7 @@ def calc_RE_season(list_of_files, outfilename="RE.nc"):
         for f in list_of_files:
 
             # Read RE variables from netcdf
-            ncdata = IO.ncread_variables(f, ['RE', 'GridNumObs', 'Count'], dep_lev=dep_lev)
+            ncdata = IO.ncread_variables(f, ['RepErr', 'GridNumObs', 'Count'], dep_lev=dep_lev)
             RE = arrays.REstats((lat.shape[0], lon.shape[1]))
             RE.RE = ncdata[0]
             RE.num_obs_in_grid = ncdata[1]
@@ -161,7 +161,7 @@ def calc_RE_season(list_of_files, outfilename="RE.nc"):
         GridMeanNumObs[msk] = 1e10
 
         # Write variables to output file
-        IO.ncwrite_variables(outfile, ['RE', 'GridMeanNumObs'], [], [],
+        IO.ncwrite_variables(outfile, ['RepErr', 'GridMeanNumObs'], [], [],
                              vardata=[RE, GridMeanNumObs],
                              create_vars=False, dep_lev=dep_lev)
 

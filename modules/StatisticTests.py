@@ -19,7 +19,7 @@ class StatsTests():
 
     def f_test_pvalue(self, rss_func, rss_mean, num_param, num_points):
         """
-        Calculate p_value using an F-test comparing again the fit of the mean.
+        Calculate p_value using an F-test comparing against the fit of the mean.
         Inputs:
             1. rss_func:   Residual sum of squares against the fitted function
             2. rss_mean:   Residual sum of squares against the mean

@@ -11,7 +11,7 @@ def is_inside_sm(polygon, point):
     2. point: a single point [xp, yp]
 
     ******* RETURNS ********
-    1. intersection: point is inside polygon if this variable is greater than 0
+    1. intersections: point is inside polygon if this variable is greater than 0
     """
     length = len(polygon)-1
     dy2 = point[1] - polygon[0][1]
