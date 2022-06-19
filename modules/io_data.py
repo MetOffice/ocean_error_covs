@@ -4,6 +4,8 @@
 # See LICENSE in the root of the repository for full licensing details.
 #######################################################################
 import numpy as np
+import xarray as xr
+from datetime import datetime as dt
 from netCDF4 import Dataset
 from modules.masks import applyMask
 import modules.arrays as arrays
@@ -11,8 +13,8 @@ import modules.arrays as arrays
 # Initialising the classes
 applyMask = applyMask()
 
-class IO():
-    """ Class of IO functions """
+class IO_netCDF4():
+    """ Class of IO functions based on netCDF4 capabilities """
 
     def __init__(self):
         self.fill_value = 1e10
@@ -74,6 +76,7 @@ class IO():
         fdbkdata.close()
         return fdbk_var_array, depths
 
+
     def ncread_variables(self, infile, varnc, dep_lev=None):
         """ Read variables of a netcdf file
 
@@ -124,6 +127,7 @@ class IO():
         
         return outfile
 
+
     def ncwrite_variables(self, outfile, varnames, vartypes, vardims,
                           vardata=[], dep_lev=None, create_vars=True,
                           fill_value=None):
@@ -154,3 +158,150 @@ class IO():
                else:
                   outfile.variables[var][dep_lev,:] = vardata[idx]
 
+
+class IO_xarray():
+    """ Class of IO functions based on xarray capabilities """
+
+    def __init__(self, PARALLEL_IO=True, CHUNKS_INPUT={'time_counter': 1},
+                 field_name='votemper', level=None, COMPRESS_OUTPUT=True,
+                 depth_names=["deptht", "depthu", "depthv"],
+                 time_dims="time_counter", time_var="time_instant",
+                 coord_varnames=["nav_lat", "nav_lon", "deptht", "depthu",
+                                 "depthv", "time_instant", "deptht_bounds",
+                                 "depthu_bounds", "depthv_bounds", "bounds_lon",
+                                 "bounds_lat", "area", "time_instant_bounds"]):
+        self.PARALLEL_IO = PARALLEL_IO
+        self.CHUNKS_INPUT = CHUNKS_INPUT
+        self.COMPRESS_OUTPUT = COMPRESS_OUTPUT
+        self.field_name = field_name
+        self.depth_names = depth_names
+        self.coord_varnames = coord_varnames
+        self.level = level
+        self.time_dims = time_dims
+        self.time_var = time_var
+
+
+    def findvardepth(self, varlist):
+        """
+        Check from a list of variables which one matches the depth variables
+
+        ****** PARAMETERS *****
+        1. varlist: list of netcdf variables
+
+        ******* RETURNS *******
+        1. var: target depth variable name
+        """
+        for var in self.depth_names:
+            if var in varlist:
+                return var
+        return None
+
+
+    def get_shape_cov(self, data, depthvar):
+        """
+        Get the shape of the covariance array
+
+        ****** PARAMETERS *****
+        1. data: xarray data
+        2. depth_var: depth variable name
+
+        ******* RETURNS *******
+        1. dshape: shape of error covariance array
+        """
+        if self.level is not None:
+            indexers = {depthvar: self.level}
+            data = data.isel(**indexers)
+        dshape = data[self.field_name].shape[1::]
+        if len(dshape) > 3:
+           raise ValueError("Model data has more than 3 dims!")
+        return dshape
+
+
+    def get_input_model_data(self, data, rec_number):
+        """
+        Get the input data and its validity time
+
+        ****** PARAMETERS *****
+        1. data: xarray data
+        2. rec_number: time index
+
+        ******* RETURNS *******
+        1. rec: model slice based on time record
+        2. tim: time record
+        """
+        if data[self.field_name].dims[0] != self.time_dims:
+            raise ValueError("1st dimension of {} is not {} !".format(
+                self.field_name, self.time_var))
+        rec = data[self.field_name][[rec_number]]
+        tim = data[self.time_var][rec_number]
+        tim = dt.strptime(np.datetime_as_string(tim, unit='m'),
+                          "%Y-%m-%dT%H:%M")
+        return rec, tim
+
+
+    def read_model_files(self, files, concatenate=False, concat_dim=None):
+        """
+        Read netcdf model file for a particular level from the
+        input file(s) using xarray
+
+        ****** PARAMETERS *****
+        1. files:   list of files
+        2. concatenate: logical for concatenation of files
+        3. concat_dim: dimension name to concatenate
+
+        ******* RETURNS *******
+        1. An xarray dataset over multiple files for the
+           selected variable and level.
+        """
+        if concatenate:
+            input_ds = xr.open_mfdataset(files, concat_dim=concat_dim, combine="nested",
+                                         parallel=self.PARALLEL_IO, chunks=self.CHUNKS_INPUT)
+        else:
+            input_ds = xr.open_mfdataset(files, parallel=self.PARALLEL_IO, chunks=self.CHUNKS_INPUT)
+
+        # Depth variable
+        varlist = list(input_ds.variables.keys())
+        depthvar = self.findvardepth(varlist)
+
+        if depthvar is None:
+            raise ValueError('Depth variable not found in the nc file!')
+        if self.level is None:
+            data = input_ds.isel()
+        else:
+            indexers = {depthvar: [self.level]}
+            data = input_ds.isel(**indexers)
+        return data, depthvar
+
+
+    def write_forecast_errors(self, data, diff, rec, output_file):
+        """
+        Write out the model differences to a netcdf file
+
+        ****** PARAMETERS *****
+        1. files: xarray data
+        2. diff: model differences
+        3. rec: time index
+        4. output_file: name of netcdf output
+
+        """
+        indexers = {self.time_dims: [rec]}
+        data = data.isel(**indexers)
+        data[self.field_name] = diff
+
+        ncvars = self.coord_varnames
+        ncvars.append(self.field_name)
+        for var in data.variables.keys():
+            if var not in ncvars:
+                data = data.drop(var)
+
+        if self.COMPRESS_OUTPUT:
+            encoding = {}
+            for var in list(data.variables.keys()):
+                if var not in self.coord_varnames:
+                    encoding.update({var: {"zlib": True,
+                                        "complevel": 1}})
+        else:
+            encoding = None
+
+        data.to_netcdf(output_file, unlimited_dims=[self.time_dims],
+                       encoding=encoding)

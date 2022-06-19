@@ -6,12 +6,12 @@
 import numpy as np
 import modules.arrays as arrays
 import modules.polygon as check_polygon
-from modules.io_data import IO
+from modules.io_data import IO_netCDF4
 from modules.utils import Utils
 from time import time
 
 # Initialising the classes
-IO = IO()
+IO = IO_netCDF4()
 Utils = Utils()
 
 class CalcREs():

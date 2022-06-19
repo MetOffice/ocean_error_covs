@@ -13,14 +13,14 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 from multiprocessing import Pool
 ################## Code modules ##############################
-from modules.io_data import IO
+from modules.io_data import IO_netCDF4
 from modules.plot import Plots
 from modules.masks import applyMask
 from modules.posproc import Posproc
 from modules.StatisticTests import StatsTests
 
 # Initialising the classes
-IO = IO()
+IO = IO_netCDF4()
 Posproc = Posproc()
 Plots = Plots()
 applyMask = applyMask()

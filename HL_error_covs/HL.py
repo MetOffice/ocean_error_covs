@@ -15,13 +15,13 @@ import numpy as np
 from multiprocessing import Pool
 ################## Code modules ##############################
 import modules.arrays as arrays
-from modules.io_data import IO
+from modules.io_data import IO_netCDF4
 from modules.utils import Utils
-from HL_error_covs.errorCovs import HLerrorCovs
+from modules.errorCovs import HLerrorCovs
 from modules.masks import applyMask
 
 # Initialising the classes
-IO = IO()
+IO = IO_netCDF4()
 Utils = Utils()
 HLerrorCovs = HLerrorCovs()
 applyMask = applyMask()

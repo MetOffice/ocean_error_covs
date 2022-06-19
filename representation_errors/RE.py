@@ -7,13 +7,13 @@ import os
 import numpy as np
 ################## Code modules ##############################
 import modules.arrays as arrays
-from modules.io_data import IO
+from modules.io_data import IO_netCDF4
 from modules.utils import Utils
 from modules.masks import applyMask
 from representation_errors.calcREs import CalcREs
 
 # Initialising the classes
-IO = IO()
+IO = IO_netCDF4()
 Utils = Utils()
 applyMask = applyMask()
 CalcREs = CalcREs()
