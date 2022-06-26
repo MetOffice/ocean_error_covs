@@ -16,18 +16,18 @@ from multiprocessing import Pool
 from modules.io_data import IO_netCDF4
 from modules.plot import Plots
 from modules.masks import applyMask
-from modules.posproc import Posproc
+from modules.fitting import FittingHL
 from modules.StatisticTests import StatsTests
 
 # Initialising the classes
 IO = IO_netCDF4()
-Posproc = Posproc()
+Fitting = FittingHL()
 Plots = Plots()
 applyMask = applyMask()
 StatsTests = StatsTests()
 
 
-def HL_fitting_function(infile, outfilename, func_name="MultiGauss", 
+def fitting_function(infile, outfilename, func_name="MultiGauss",
                        num_funcs=2, lenscale=(400,40), plot=None, outfig='./figures', 
                        nproc=4, min_num_obs=2, max_iter=100, scalefac=1.0, f_test=True):
 
@@ -88,7 +88,7 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
        IO.ncwrite_variables(outfile, ['P_val'], ['f'], ('depth', 'latitude', 'longitude'))
 
     # Calculate x positions based on the separation distances
-    x_val = Posproc.calc_x_positions(bins)
+    x_val = Fitting.calc_x_positions(bins)
 
     for lev in range(0, len(depth)):
         print(f"MESSAGE: Fitting function {func_name} to ErrorCov data: {depth[lev]} m")
@@ -110,17 +110,17 @@ def HL_fitting_function(infile, outfilename, func_name="MultiGauss",
         cors[cors<-1.] = -1.
 
         # Creating list with arguments to run in parallel
-        arg_lists = Posproc.create_arg_list(x_val, cors, var, numobsvar, min_num_obs, 
+        arg_lists = Fitting.create_arg_list(x_val, cors, var, numobsvar, min_num_obs,
                                             func_name, num_funcs, lenscale, max_iter,
                                             scalefac)
         
         # Get workers to do parallel calculations
-        results = workers.map(Posproc.fitter, arg_lists)
+        results = workers.map(Fitting.fitter, arg_lists)
         workers.close()
 
         # Unravel results into output grids
         params, obs_err, rss_func_grid, rss_mean_grid, dof = \
-                            Posproc.results_to_grid(results, len(lats), len(lons))
+                            Fitting.results_to_grid(results, len(lats), len(lons))
 
         # If requested perform F-test comparing to mean
         p_val = None

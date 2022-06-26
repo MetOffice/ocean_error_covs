@@ -197,20 +197,18 @@ class IO_xarray():
         return None
 
 
-    def get_shape_cov(self, data, depthvar):
+    def get_shape_cov(self, data):
         """
         Get the shape of the covariance array
 
         ****** PARAMETERS *****
         1. data: xarray data
-        2. depth_var: depth variable name
-
         ******* RETURNS *******
         1. dshape: shape of error covariance array
+                   without time dimension
         """
         if self.level is not None:
-            indexers = {depthvar: self.level}
-            data = data.isel(**indexers)
+            data = data.squeeze()
         dshape = data[self.field_name].shape[1::]
         if len(dshape) > 3:
            raise ValueError("Model data has more than 3 dims!")

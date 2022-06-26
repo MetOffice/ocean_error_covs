@@ -75,7 +75,7 @@ def calc_fld_diffs(list_of_files, output_dir, field_name, level=None,
     print("Elapsed time: {}".format(timedelta(seconds=end_time-start_time)))
 
 
-def calc_stats_covs(input_files, variable, level, output_dir='./',
+def calc_stats_covs(input_files, variable, level=0, output_dir='./',
                     stats_file='cov_stats.nc', num_cross_covs=0,
                     vert=False, wrap=True):
     """
@@ -90,7 +90,7 @@ def calc_stats_covs(input_files, variable, level, output_dir='./',
         4. output_dir:     Output directory
         5.stats_file:      Filename to write the output statistics to
                            If it exists it will be updated
-        6.num_cross_covs:  Number of grid points in each N/S/E/W directions
+        6.num_cross_covs:  Number of grid points in each direction
                            to calculate the covariances. Put zero if you don't
                            want to calculate cross covariances.
         7. vert:           Calculate vertical covariances. 
@@ -111,9 +111,9 @@ def calc_stats_covs(input_files, variable, level, output_dir='./',
     # Reading list of files containing forecast differences
     fc_error, depthvar = model_io.read_model_files(input_files, concatenate=True,
                                                    concat_dim=model_io.time_dims)
-    grid_shape = model_io.get_shape_cov(fc_error, depthvar)
-    stats_dataset = StatsDataset(variable, grid_shape, depthvar, num_cross_covs=num_cross_covs,
-                                 wrap=wrap, vert=vert)
+    grid_shape = model_io.get_shape_cov(fc_error)
+    stats_dataset = StatsDataset(variable, grid_shape=grid_shape, depthvar=depthvar,
+                                 num_cross_covs=num_cross_covs, wrap=wrap, vert=vert)
 
     stats_dataset.set_up(fc_error[stats_dataset.time_dim])
     for itime in range(fc_error.dims[stats_dataset.time_dim]):
@@ -124,7 +124,7 @@ def calc_stats_covs(input_files, variable, level, output_dir='./',
     print("Elapsed time: {}".format(timedelta(seconds=end_time-start_time)))
 
 
-def combine_stats(input_files, variable, output_dir='/.', out_file='comb_cov_stats.nc',
+def combine_stats(input_files, variable, output_dir='./', out_file='comb_cov_stats.nc',
                   num_cross_covs=0, vert=False, wrap=True):
     """
     Top-level routine that combines error covariance information 
@@ -138,7 +138,7 @@ def combine_stats(input_files, variable, output_dir='/.', out_file='comb_cov_sta
         3. output_dir:     Output directory
         4. stats_file:     Filename to write the output statistics to
                            If it exists it will be updated
-        5. num_cross_covs: Number of grid points in each N/S/E/W directions
+        5. num_cross_covs: Number of grid points in each direction
                            to calculate the covariances. Put zero if you don't
                            want to calculate cross covariances.
         6. vert:           Calculate vertical covariances. 
@@ -156,7 +156,7 @@ def combine_stats(input_files, variable, output_dir='/.', out_file='comb_cov_sta
 
     # Initialising dataset class
     data, depthvar = model_io.read_model_files(input_files[0])
-    in_stats_ds = StatsDataset(variable, None, depthvar, num_cross_covs=num_cross_covs,
+    in_stats_ds = StatsDataset(variable, depthvar=depthvar, num_cross_covs=num_cross_covs,
                                wrap=wrap, vert=vert)
 
     # Loop over files

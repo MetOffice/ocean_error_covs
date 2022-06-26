@@ -1,6 +1,8 @@
 import shutil
 import os
+import warnings
 import xarray as xr
+warnings.simplefilter("ignore", category=RuntimeWarning)
 import numpy as np
 import tempfile
 from timeit import default_timer as timer
@@ -14,8 +16,8 @@ class StatsDataset():
     Class with methods to set up and increment an xarray dataset
     containing statistics
     """
-    def __init__(self, variable, grid_shape, depthvar, num_cross_covs=0,
-                 vert=False, CHUNK_STATS_IO={'y': 1000, 'x': 1000},
+    def __init__(self, variable, grid_shape=None, depthvar="deptht", vert=False,
+                 num_cross_covs=0, CHUNK_STATS_IO={'y': 1000, 'x': 1000},
                  time_dim='time_counter', time_var='time_instant',
                  latname='nav_lat', lonname='nav_lon', 
                  exclude_compress = ['directions'], wrap=True,
@@ -149,7 +151,7 @@ class StatsDataset():
             start_time = timer()
             self.covs_ds[self.nam_sumsq_var].load()
             end_time = timer()
-            print("Finished loading xy_sumsq", flush=True)
+            print("Finished loading {}".format(self.nam_sumsq_var), flush=True)
             print("Elapsed time: {}".format(timedelta(seconds=end_time-start_time)), flush=True)
 
             start_time = timer()

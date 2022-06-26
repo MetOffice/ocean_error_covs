@@ -540,13 +540,13 @@ class ForecastErrorCovs():
           xy_dists = np.zeros(np.shape(xy_shape))
           for n in range(np.shape(xy_shape)[1]):
               shift = n + 1
-              xy_dists[0, n, :] = haversine_np(lons, lats, self.shift_array(lons, shift, 0), \
+              xy_dists[0, n, :] = self.haversine_np(lons, lats, self.shift_array(lons, shift, 0), \
                                   self.shift_array(lats, shift, 0))
-              xy_dists[1, n, :] = haversine_np(lons, lats, self.shift_array(lons, -shift, 0), \
+              xy_dists[1, n, :] = self.haversine_np(lons, lats, self.shift_array(lons, -shift, 0), \
                                   self.shift_array(lats, -shift, 0))
-              xy_dists[2, n, :] = haversine_np(lons, lats, self.shift_array(lons, shift, 1), \
+              xy_dists[2, n, :] = self.haversine_np(lons, lats, self.shift_array(lons, shift, 1), \
                                   self.shift_array(lats, shift, 1))
-              xy_dists[3, n, :] = haversine_np(lons, lats, self.shift_array(lons, -shift, 1), \
+              xy_dists[3, n, :] = self.haversine_np(lons, lats, self.shift_array(lons, -shift, 1), \
                                   self.shift_array(lats, -shift, 1))
 
           return xy_dists
