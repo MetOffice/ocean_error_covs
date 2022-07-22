@@ -38,8 +38,8 @@ def fitting_function(input_stats_file, variable, num_cross_covs=25, vert=False,
     10. nproc: number of processors for parallel computation
     11. output_dir: output directory
     12. output_file: output_filename
-    13. anisotropic: true for fitting anisotropic covariances
-                     false for fitting isotropic covariances
+    13. anisotropic: true for fitting values in distinct directions (e.g. E-W, S-N),
+                     false otherwise
     14. level: target model level (None except when vert is True)
     15. max_iter: maximum number of iterations
     16. scalefac: multiplying factor to help convergence when covariances are too small
