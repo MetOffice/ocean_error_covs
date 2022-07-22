@@ -19,7 +19,7 @@ output_files = []
 model_mesh_file = "../ancillary/model_mesh.nc"
 for i in range(1, 90, inc):
     print("MESSAGE: RUNNING SCRIPT TO GENERATE REPRESENTATION ERROR - STEP {}".format(count))
-    list_of_files = ["../test_files/HL_random_sample_" + str(n) + ".nc" for n in range(i, i+inc)]
+    list_of_files = ["../test_files/feedback_files/HL_random_sample_" + str(n) + ".nc" for n in range(i, i+inc)]
     RE.RE_unresolved_scales(list_of_files, model_mesh_file, obs_type="VAR", source_types=[34],
                             thinning=thinning, min_num_obs=min_num_obs, outfilename=filename,
                             lon_discontinuity=False)

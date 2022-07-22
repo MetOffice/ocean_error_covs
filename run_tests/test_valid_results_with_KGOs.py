@@ -41,5 +41,12 @@ for f in glob(f"{KGO_dir}/{sufix}"):
     for var in nc_kgo.variables:
         kgo = nc_kgo.variables[var][:]
         result = nc_results.variables[var][:]
-        if not np.allclose(kgo, result, rtol=rtol):
-           raise ValueError(f"[ERROR] Variable {var} not matching KGO for {filename}!")
+        if (isinstance(kgo, str)):
+           if kgo != result:
+              raise ValueError(f"[ERROR] Variable {var} not matching KGO for {filename}!")
+        elif isinstance(kgo, np.ndarray) and kgo.ndim > 0 and any(isinstance(elem, str) for elem in kgo):
+           if any(kgo != result):
+              raise ValueError(f"[ERROR] Variable {var} not matching KGO for {filename}!")
+        else:
+           if not np.allclose(kgo, result, rtol=rtol):
+              raise ValueError(f"[ERROR] Variable {var} not matching KGO for {filename}!")

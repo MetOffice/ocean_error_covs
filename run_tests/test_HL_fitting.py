@@ -17,25 +17,25 @@ max_iter = 1000                        # Maximum number of iterations
 plot_locs = [(1,4), (5,4), (4,1), (5,5)]      # Location of the plots
 ###################################################################################
 # Fit HL error covariances to MultiGaussian Function with Fixed Length Scales  
-FunctionFitting.HL_fitting_function("HL_errorcovs.nc", "MultiGaussian_fixed_length_scales.nc", 
+FunctionFitting.fitting_function("HL_errorcovs.nc", "MultiGaussian_fixed_length_scales.nc",
                            func_name="MultiGauss_Fixed", lenscale=lenscale, plot=plot_locs, 
                            outfig="./figures_MGFixed", nproc=nproc, num_funcs=num_funcs,
                            min_num_obs=20, max_iter=max_iter, f_test=False)
 
 # Fit HL error covariances to MultiGaussian Function
-FunctionFitting.HL_fitting_function("HL_errorcovs.nc", "MultiGaussian.nc", 
+FunctionFitting.fitting_function("HL_errorcovs.nc", "MultiGaussian.nc",
                            func_name="MultiGauss", lenscale=lenscale, plot=plot_locs, 
                            outfig="./figures_MG", nproc=nproc, num_funcs=num_funcs,
                            min_num_obs=20, max_iter=max_iter, f_test=False)
 
 # Fit HL error covariances to MultiGaussian Function with Fixed Length Scales, but with F test conducted
-FunctionFitting.HL_fitting_function("HL_errorcovs.nc", "MultiGaussian_fixed_length_scales_Ftest.nc",
+FunctionFitting.fitting_function("HL_errorcovs.nc", "MultiGaussian_fixed_length_scales_Ftest.nc",
                            func_name="MultiGauss_Fixed", lenscale=lenscale, plot=plot_locs,
                            outfig="./figures_MG_Fixed_Ftest", nproc=nproc, num_funcs=num_funcs,
                            min_num_obs=20, max_iter=max_iter, f_test=True)
 
 # Fit HL error covariances to MultiGaussian Function, but with F test conducted
-FunctionFitting.HL_fitting_function("HL_errorcovs.nc", "MultiGaussian_Ftest.nc",
+FunctionFitting.fitting_function("HL_errorcovs.nc", "MultiGaussian_Ftest.nc",
                            func_name="MultiGauss", lenscale=lenscale, plot=plot_locs,
                            outfig="./figures_MG_Ftest", nproc=nproc, num_funcs=num_funcs,
                            min_num_obs=20, max_iter=max_iter, f_test=True)
@@ -62,7 +62,7 @@ with nc4.Dataset("HL_errorcovs_degraded.nc",'r+') as degrade_me:
                  degrade_me.variables["Correlation"][:, :, :, :]))
 
 # Fit degraqded HL error covariances to MultiGaussian Function with F test.
-FunctionFitting.HL_fitting_function("HL_errorcovs_degraded.nc",
+FunctionFitting.fitting_function("HL_errorcovs_degraded.nc",
                            "MultiGaussian_degraded.nc", func_name="MultiGauss",
                            lenscale=lenscale, plot=plot_locs,
                            outfig="./figures_MG_degraded", nproc=nproc,
