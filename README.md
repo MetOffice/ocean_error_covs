@@ -1,24 +1,25 @@
 [![DOI](https://zenodo.org/badge/288694395.svg)](https://zenodo.org/badge/latestdoi/288694395)
 # Estimating observation and model errors in ocean data assimilation
 
-This is a quick User Guide for a friendly, python3-based code to estimate observation and model errors required in ocean data assimilation. If you're also a developer and have new ideas on how to improve the estimations of the error components in ocean data assimilation, you're welcome to contribute to this project! We're better together :rocket:! 
+This is a quick User Guide for a friendly, python3-based code to estimate observation and model errors required in ocean data assimilation. If you're also a developer and have new ideas on how to improve the estimations of the error components in ocean data assimilation, you're welcome to contribute to this project! We're better together :rocket:!
 
 There is a **protocol** in place of how to create your own development branch and merge pull requests. Please, ensure you read this [document](https://github.com/MetOffice/ocean_error_covs/blob/master/CONTRIBUTING.md) carefully if you're contributing to this project for the first time.
 
 This code is also emoji-friendly, which means that you can add emojis before your commit messages following these [guidelines](https://gist.github.com/parmentf/035de27d6ed1dce0b36a).
 
-The code consists of the following features: 
+The code consists of the following features:
 * **HL_error_covs** - Error covariances based on observation-minus-forecast data, using [Hollingsworth and Lonnberg](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1600-0870.1986.tb00460.x)'s methodology.
 * **forecast_diff_error_covs** - Error covariances based on forecast differences:
-  * Differences of varying length forecasts valid at the same time ([NMC method](https://doi.org/10.1002/qj.339)) 
+  * Differences of varying length forecasts valid at the same time ([NMC method](https://doi.org/10.1002/qj.339))
   * Forecast time lags ([Canadian Quick method](https://doi.org/10.3137/ao.430105))
 * **representation_errors** - Errors due to differences between the modelled representation of an observation and what is actually observed:
   * Representation errors due to unresolved, sub-grid scales in the model (see [Oke & Sakov, 2007](https://doi.org/10.1175/2007JTECHO558.1))
+  * **Desrozier's diagnostics** - Error covariance based on innovation, increment and residual data using [Fowler et al. 2023](https://doi.org/10.1002/qj.4408), which is based on [Desroziers' statistics](https://doi.org/10.1256/qj.05.108)
 
 The structure of the code also contains:
 * **modules** - Various classes of methods which are used in the features above.
 * **KGO** - Known Good Outputs of the features above, so we can ensure that code changes don't erroneously affect the outputs of the code.
-* **run_tests** - How to run the code tests with different configurations. This is recommended to get familiar with how to run the code and to make sure that your code results match the KGOs above. 
+* **run_tests** - How to run the code tests with different configurations. This is recommended to get familiar with how to run the code and to make sure that your code results match the KGOs above.
 
 All major parts of the code have detailed documentation strings that give details of their input variables and behavior. To see the documentation strings either look at the code or use the python help command. For any questions contact Davi Mignac Carneiro (davi.carneiro@metoffice.gov.uk) or Matthew Martin (matthew.martin@metoffice.gov.uk)
 
@@ -32,7 +33,7 @@ To calculate the accumulated error covariance statistics, the code needs to be g
 
 Both surface and profile observations can be processed. To process profiles, specify a list of depths defining the boundaries of the depth levels on which the statistics will be calculated. In some cases observations from multiple sources can exist in one feedback file. In this case, it is possible to process the statistics from a subset of these sources by specifying a list of observation sources or observation IDs.
 
-Once the accumulated error covariance statistics are calculated, they can be quickly combined in order to generate the final results, containing the variances, covariances, and correlations for each grid box. It also contains the mean error and the number of observations that went into the calculation. These outputs are required by the top-level subroutine in **FunctionFitting.py**, which fits the error covariances to a function and therefore estimates the magnitude and length-scales of the model errors. 
+Once the accumulated error covariance statistics are calculated, they can be quickly combined in order to generate the final results, containing the variances, covariances, and correlations for each grid box. It also contains the mean error and the number of observations that went into the calculation. These outputs are required by the top-level subroutine in **FunctionFitting.py**, which fits the error covariances to a function and therefore estimates the magnitude and length-scales of the model errors.
 
 It is important to note that additional post-processing may also be necessary, such as smoothing the fitted data, which is not currently included in the code.
 
@@ -41,7 +42,7 @@ Three top-level subroutines are required to calculate error covariances in **for
 
 The forecast differences are then used to generate accumulated error covariance statistics over a specific time period in subroutine **calc_stats_covs**, whereas the subroutine **combine_stats** combines multiple files that can be generated by the former subroutine and ultimately calculates the model-based error covariances. In this case, error covariances are calculated using the same model resolution and distances are chosen based on a number of grid points in each direction. Keep in mind that computations on high-resolution grids will require a large amount of CPU memory!
 
-For horizontal covariances, the user must choose a model level to perform the calculations. In addition to horizontal covariances, the option of calculating vertical covariances is enabled here, but they will require even more CPU memory. Once the error covariances are calculated, they can be used by **FunctionFitting.py** and fitted to a function, in order to estimate the magnitudes and length-scales of the model errors. 
+For horizontal covariances, the user must choose a model level to perform the calculations. In addition to horizontal covariances, the option of calculating vertical covariances is enabled here, but they will require even more CPU memory. Once the error covariances are calculated, they can be used by **FunctionFitting.py** and fitted to a function, in order to estimate the magnitudes and length-scales of the model errors.
 
 ## Representation errors
 There are several methods used in the literature to compute representation errors. The only approach coded here so far is based on the sub-grid scale variability, which aims at representing unresolved scales in the model.
@@ -49,6 +50,13 @@ There are several methods used in the literature to compute representation error
 Two top-level subroutines are required to calculate representation errors, due to unresolved model scales, in **RE.py**. The subroutine **RE_unresolved_scales** reads feedback files within a time window and then compute the standard deviation of the observation values within each model grid cell. The subroutine **calc_RE_season** reads a list of standard deviation files for a specific time period (e.g. a season) and then computes their average.
 
 Due to the lack of observation in some areas, you might end up with gaps which are filled with undefined values. Although the post-processing is not yet included here, smoothing and spreading the information of the representation error to surrounding areas may certainly be needed.
+
+## Desroziers Diagnostics
+A single top-level function, **calc_desroziers** in **calc_desroziers.py**, is required to estimate observation and background error covariances. The method uses three difference vectors available from an assimilation cycle — the innovation (observation minus background), the residual (observation minus analysis), and the analysis increment in observation space to form error covariance estimation.
+
+The code is configured through a top-level `config.ini` file and one `.ini` file per observation type. The inputs are files containing observation-space vectors (innovation, residual, increment) together with observation locations and, optionally, a predictor variable. Statistics are pooled over time and over pairs of observations falling within the same spatial distance bin, yielding spatially resolved error correlation functions as well as error variances for the observation error covariance matrix **R** and the background error covariance matrix **HBH**ᵀ.
+
+Error statistics can be stratified by a discrete **predictor** variable — such as Optical Water Types (OWT) for ocean colour observations, ocean bathymetry, or any other integer-indexed categorical variable. Multiple observation types can be processed simultaneously, enabling the construction of a full, blocked error covariance matrix across types. See [README.md](configs/README.md) for more details.
 
 ## Requirements to run
 * Python3
@@ -61,19 +69,19 @@ Due to the lack of observation in some areas, you might end up with gaps which a
 
 ## Running a simple test
 
-All the inputs for test cases of the code are located at **run_tests/test_files.tar.gz**. The instructions to run the tests are given below: 
+All the inputs for test cases of the code are located at **run_tests/test_files.tar.gz**. The instructions to run the tests are given below:
 
-* In the folder **run_tests**, the user should enter the path where the tests will be performed by changing the variable *scratch* in the script **test.sh**. 
+* In the folder **run_tests**, the user should enter the path where the tests will be performed by changing the variable *scratch* in the script **test.sh**.
 
 * After setting the path then just run all test cases with the command **bash test.sh**.
 
-* The shell script calls a few python scripts, each correspoding to a feature of the code (e.g. HL, NMC, etc), where many different configurations are tested. 
-  
+* The shell script calls a few python scripts, each correspoding to a feature of the code (e.g. HL, NMC, etc), where many different configurations are tested.
+
 * All the netcdf files generated by the tests are stored in the path provided by the user.
 
-* The user can play with changing some input parameters of the test. In each python script there is a section of changeable parameters. This is the best place to quickly become familiar on how to run the code for different cases! 
+* The user can play with changing some input parameters of the test. In each python script there is a section of changeable parameters. This is the best place to quickly become familiar on how to run the code for different cases!
 
-:warning: These tests must be run before you create the merge pull request, making sure that the test outputs match the KGOs. 
+:warning: These tests must be run before you create the merge pull request, making sure that the test outputs match the KGOs.
 
 ## License
 
